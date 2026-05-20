@@ -1,0 +1,53 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background: #0f0f0f;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+}
+
+/* ── Hub / index ── */
+.hub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 2rem;
+}
+
+.hub-title {
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: #ff007a;
+}
+
+.hub-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.hub-link {
+  color: #666;
+  text-decoration: none;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  transition: color 0.2s;
+}
+
+.hub-link:hover {
+  color: #fff;
+}

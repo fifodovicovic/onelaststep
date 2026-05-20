@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}ONE LAST STEP — A{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/checkbox.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="scene-stage">
+  <div class="window-wrapper" id="window-wrapper">
+    {{ svg | safe }}
+    <div id="lottie-eyes"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+<script src="{{ url_for('static', filename='js/checkbox.js') }}"></script>
+{% endblock %}

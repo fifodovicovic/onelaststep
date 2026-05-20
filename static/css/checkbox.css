@@ -1,0 +1,97 @@
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--c-bg);
+  cursor: auto;
+}
+
+.scene-stage {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* ── Window wrapper ── */
+.window-wrapper {
+  position: relative;
+  width: min(88vw, 700px);
+  transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+}
+
+/* ── Lottie eye-roll overlay ── */
+#lottie-eyes {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* ── SVG root ── */
+#demo {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+/* Hide the Illustrator element-name legend */
+#demo > text {
+  display: none;
+}
+
+#demo-smile {
+  display: none;
+}
+
+/* ── SVG farby — override Illustrator tried ──────────────────────────────────
+   st5, st3  = plocha výplň (body fill, checkmark fill)
+   st1–st4   = stroke (outline všetkých tvarov)
+   st2, st4, st8 = biele výplne (oko biele, checkbox box)
+   st6, st7  = plná farba (text, zreničky)
+   ──────────────────────────────────────────────────────────────────────── */
+#demo .st5,
+#demo .st3  { fill: var(--c-fill); }
+
+#demo .st1,
+#demo .st2,
+#demo .st3,
+#demo .st4  { stroke: var(--c-outline); }
+
+#demo .st2,
+#demo .st4,
+#demo .st8  { fill: var(--c-bg); }
+
+#demo .st6,
+#demo .st7  { fill: var(--c-outline); }
+
+/* ── Checkbox box ── */
+#demo-box {
+  cursor: inherit;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+/* ── Checkmark: hidden by default, animated on toggle ── */
+#demo-checkmark {
+  display: none;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+
+@keyframes chk-in {
+  0%   { transform: scale(0.2);  opacity: 0; }
+  65%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes chk-out {
+  0%   { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(0.2); opacity: 0; }
+}
