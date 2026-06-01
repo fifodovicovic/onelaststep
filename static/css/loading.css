@@ -1,0 +1,26 @@
+.window-wrapper {
+  width: min(90vw, 940px);
+}
+
+#loading {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+  cursor: pointer;
+}
+
+#loading > text { display: none; }
+
+/* Color overrides — loading.svg class map:
+   st1 = body outline (no fill, pink stroke)
+   st2 = mouth (pink stroke, round cap)
+   st3 = eye whites (white fill + pink stroke)
+   st4 = progress fill (pink fill)
+   st5 = pupils (dark pink fill)
+*/
+#loading .st1 { fill: none; stroke: var(--c-outline); }
+#loading .st2 { stroke: var(--c-outline); }
+#loading .st3 { fill: var(--c-bg); stroke: var(--c-outline); }
+#loading .st4 { fill: var(--c-fill); }
+#loading .st5 { fill: var(--c-outline); }

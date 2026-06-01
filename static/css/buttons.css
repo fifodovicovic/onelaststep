@@ -1,0 +1,31 @@
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--c-bg);
+  cursor: auto;
+}
+
+.scene-stage {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.window-wrapper {
+  position: relative;
+  will-change: transform;
+}
+
+.lottie-overlay {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  overflow: visible;
+}

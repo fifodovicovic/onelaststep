@@ -1,0 +1,34 @@
+.window-wrapper {
+  width: min(66vw, 620px);
+}
+
+#Layer_1 {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+#Layer_1 > text { display: none; }
+
+/* Color overrides — ok.svg class map:
+   st1 = window body (no fill, pink stroke)
+   st2 = ok button fill (pink fill + pink stroke)
+   st3 = ok button body (white fill + pink stroke)
+   st4 = eye whites (white fill + pink stroke)
+   st5 = "PRESS OK TO CONTINUE" text (pink fill)
+   st6 = pupils + OK text (dark pink fill)
+   st7 = misc white fill
+   st8 = skin tone detail (leave as-is for now)
+*/
+#Layer_1 .st1 { fill: none; stroke: var(--c-outline); }
+#Layer_1 .st2 { fill: var(--c-fill); stroke: var(--c-fill); }
+#Layer_1 .st3 { fill: var(--c-bg); stroke: var(--c-outline); }
+#Layer_1 .st4 { fill: var(--c-bg); stroke: var(--c-outline); }
+#Layer_1 .st5 { fill: var(--c-fill); }
+#Layer_1 .st6 { fill: var(--c-outline); }
+#Layer_1 .st7 { fill: var(--c-bg); }
+
+/* OK button elements — cursor changes once button is catchable */
+#ok-button_x5F_body,
+#ok-button_x5F_fill { cursor: pointer; }

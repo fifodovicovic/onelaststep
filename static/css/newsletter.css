@@ -1,0 +1,65 @@
+.window-wrapper {
+  width: min(66vw, 620px);
+}
+
+#Layer_1 {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+#Layer_1 > text { display: none; }
+
+/* ── Color overrides — newsletter.svg class map ─────────────────────────────
+   st0, st1, st2 = fill:none + outline stroke
+   st3           = button fill (pink fill + pink stroke)
+   st4           = eye whites (bg fill + outline stroke)
+   st5           = toggle switch ON (fill + outline stroke, rounded)
+   st6           = toggle switch OFF (bg fill + outline stroke, rounded)
+   st7           = pink fill (text / toggle track fill?)
+   st8           = dark accent → use outline
+   st9           = pupils / text (outline fill)
+   st10          = misc bg fill
+   ─────────────────────────────────────────────────────────────────────────── */
+#Layer_1 .st1  { fill: none; stroke: var(--c-outline); }
+#Layer_1 .st2  { fill: none; stroke: var(--c-outline); }
+#Layer_1 .st3  { fill: var(--c-fill); stroke: var(--c-fill); }
+#Layer_1 .st4  { fill: var(--c-bg); stroke: var(--c-outline); }
+#Layer_1 .st5  { fill: var(--c-fill); stroke: var(--c-outline); }
+#Layer_1 .st6  { fill: var(--c-bg); stroke: var(--c-outline); }
+#Layer_1 .st7  { fill: var(--c-fill); }
+#Layer_1 .st8  { fill: var(--c-outline); }
+#Layer_1 .st9  { fill: var(--c-outline); }
+#Layer_1 .st10 { fill: var(--c-bg); }
+
+/* ── Toggle switches ────────────────────────────────────────────────────────
+   _off and _on elements are pre-positioned in SVG at their resting places.
+   JS animates between them. Both need transform-box for SVG Web Animations.  */
+#newsletter-turnon_x5F_toggle_x5F_switch_x5F_on,
+#newsletter-turnon_x5F_toggle_x5F_switch_x5F_off,
+#newsletter-signup_x5F_toggle_x5F_switch_x5F_on,
+#newsletter-signup_x5F_toggle_x5F_switch_x5F_off {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+/* Toggle bodies — cursor pointer ─────────────────────────────────────────── */
+#newsletter-turnon_x5F_toggle_x5F_body,
+#newsletter-turnon_x5F_toggle_x5F_switch_x5F_on,
+#newsletter-turnon_x5F_toggle_x5F_switch_x5F_off,
+#newsletter-signup_x5F_toggle_x5F_body,
+#newsletter-signup_x5F_toggle_x5F_switch_x5F_on,
+#newsletter-signup_x5F_toggle_x5F_switch_x5F_off { cursor: pointer; }
+
+/* Continue button ────────────────────────────────────────────────────────── */
+#newsletter-continue_x5F_button_x5F_body,
+#newsletter-continue_x5F_button_x5F_fill { cursor: pointer; }
+
+/* Lottie hand overlay ────────────────────────────────────────────────────── */
+#lottie-hand {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+}

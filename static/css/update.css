@@ -1,0 +1,54 @@
+.window-wrapper {
+  width: min(66vw, 620px);
+}
+
+#Layer_1 {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+#Layer_1 > text { display: none; }
+
+/* ── Color overrides — update.svg class map ─────────────────────────────────
+   st0, st1 = fill:none + outline stroke
+   st2      = button fill (fill + fill stroke)
+   st3      = eye whites + body (bg fill + outline stroke)
+   st4      = misc bg fill + outline stroke
+   st5      = pink fill (text, later button label?)
+   st6      = dark accent → outline
+   st7      = outline fill (pupils, text)
+   st8      = bg fill
+   ─────────────────────────────────────────────────────────────────────────── */
+#Layer_1 .st0 { fill: none; }
+#Layer_1 .st1 { fill: none; stroke: var(--c-outline); }
+#Layer_1 .st2 { fill: var(--c-fill); stroke: var(--c-fill); }
+#Layer_1 .st3 { fill: var(--c-bg); stroke: var(--c-outline); }
+#Layer_1 .st4 { fill: var(--c-bg); stroke: var(--c-outline); }
+#Layer_1 .st5 { fill: var(--c-fill); }
+#Layer_1 .st6 { fill: var(--c-outline); }
+#Layer_1 .st7 { fill: var(--c-outline); }
+#Layer_1 .st8 { fill: var(--c-bg); }
+
+/* ── Pupil groups ─────────────────────────────────────────────────────────── */
+#update-pupil_x5F_R,
+#update-pupil_x5F_L {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+#update-now_x5F_button_x5F_fill,
+#update-now_x5F_button_x5F_body,
+#update-now_x5F_txt    { cursor: pointer; }
+
+#update-later_x5F_button_x5F_body,
+#update-later_x5F_txt  { cursor: pointer; }
+
+#update-now_x5F_button_x5F_fill,
+#update-now_x5F_button_x5F_body,
+#update-later_x5F_button_x5F_body {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}

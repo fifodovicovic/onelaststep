@@ -1,0 +1,66 @@
+/* ── Location scene — placeholder until location.svg asset is ready ─────── */
+
+.placeholder-window {
+  background: var(--c-bg);
+  border: 4px solid var(--c-outline);
+  border-radius: 18px;
+  padding: 3rem 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.8rem;
+  width: min(66vw, 560px);
+  font-family: monospace;
+}
+
+.placeholder-label {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--c-outline);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.placeholder-note {
+  font-size: 0.75rem;
+  color: var(--c-outline);
+  opacity: 0.5;
+}
+
+.placeholder-buttons {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.ph-btn {
+  background: var(--c-fill);
+  border: 3px solid var(--c-outline);
+  border-radius: 8px;
+  color: var(--c-outline);
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.6rem 1.8rem;
+  cursor: pointer;
+  transform-origin: 50% 50%;
+  transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.ph-btn:hover  { transform: scale(1.05); }
+.ph-btn:active { transform: scale(0.93); }
+
+.ph-btn--ghost {
+  background: var(--c-bg);
+}
+
+.placeholder-sub {
+  font-size: 0.75rem;
+  color: var(--c-outline);
+  opacity: 0.6;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

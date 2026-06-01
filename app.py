@@ -5,8 +5,15 @@ from flask import Flask, render_template, send_from_directory, make_response
 app = Flask(__name__)
 
 VIEWBOXES = {
-    'checkbox': '605 480 710 235',
-    'mys':      '893 475 133 131',
+    'checkbox':   '605 480 710 235',
+    'mys':        '893 475 133 131',
+    'loading':    '440 455 1050 165',
+    'dead':       '625 400 690 260',
+    'ok':         '625 385 690 270',
+    'newsletter': '600 225 720 560',
+    'cookies':    '560 378 775 322',
+    'captcha':    '608 425 695 220',
+    'update':     '608 315 695 428',
 }
 
 # ── FARBY — zmeň tu, zmení sa všade (CSS aj cursor SVG) ──
@@ -77,6 +84,60 @@ def scene_checkbox():
     svg = load_svg('demo_01_checkbox.svg', viewbox=VIEWBOXES['checkbox'])
     svg = inject_colors(svg, COLORS)
     return render_template('scenes/checkbox.html', svg=svg)
+
+
+@app.route('/scene/loading')
+def scene_loading():
+    svg = load_svg('loading.svg', viewbox=VIEWBOXES['loading'])
+    svg = inject_colors(svg, COLORS)
+    return render_template('scenes/loading.html', svg=svg)
+
+
+@app.route('/scene/dead')
+def scene_dead():
+    svg = load_svg('dead.svg', viewbox=VIEWBOXES['dead'])
+    svg = inject_colors(svg, COLORS)
+    return render_template('scenes/dead.html', svg=svg)
+
+
+@app.route('/scene/ok')
+def scene_ok():
+    svg = load_svg('ok.svg', viewbox=VIEWBOXES['ok'])
+    svg = inject_colors(svg, COLORS)
+    return render_template('scenes/ok.html', svg=svg)
+
+
+@app.route('/scene/newsletter')
+def scene_newsletter():
+    svg = load_svg('newsletter.svg', viewbox=VIEWBOXES['newsletter'])
+    svg = inject_colors(svg, COLORS)
+    return render_template('scenes/newsletter.html', svg=svg)
+
+
+@app.route('/scene/cookies')
+def scene_cookies():
+    svg = load_svg('cookies.svg', viewbox=VIEWBOXES['cookies'])
+    svg = inject_colors(svg, COLORS)
+    return render_template('scenes/cookies.html', svg=svg)
+
+
+@app.route('/scene/captcha')
+def scene_captcha():
+    svg = load_svg('captcha.svg', viewbox=VIEWBOXES['captcha'])
+    svg = inject_colors(svg, COLORS)
+    return render_template('scenes/captcha.html', svg=svg)
+
+
+@app.route('/scene/update')
+def scene_update():
+    svg = load_svg('update.svg', viewbox=VIEWBOXES['update'])
+    svg = inject_colors(svg, COLORS)
+    return render_template('scenes/update.html', svg=svg)
+
+
+@app.route('/scene/location')
+def scene_location():
+    return render_template('scenes/location.html')
 
 
 if __name__ == '__main__':

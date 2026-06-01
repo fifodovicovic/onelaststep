@@ -1,0 +1,74 @@
+.window-wrapper {
+  width: min(80vw, 720px);
+}
+
+#Layer_1 {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+#Layer_1 > text { display: none; }
+
+/* ── Color overrides — cookies.svg class map ────────────────────────────────
+   st0, st1, st2 = fill:none + outline stroke
+   st3           = accept button fill (fill + fill stroke)
+   st4           = eye whites (bg + outline stroke)
+   st5           = misc white fill + outline stroke
+   st6           = cookie body fill (pink)
+   st7           = dark accent → outline
+   st8           = pupils / text (outline fill)
+   st9           = bg fill
+   st10          = light cookie spots (leave near-natural: use fill)
+   ─────────────────────────────────────────────────────────────────────────── */
+#Layer_1 .st1  { fill: none; stroke: var(--c-outline); }
+#Layer_1 .st2  { fill: none; stroke: var(--c-outline); }
+#Layer_1 .st3  { fill: var(--c-fill); stroke: var(--c-fill); }
+#Layer_1 .st4  { fill: var(--c-bg); stroke: var(--c-outline); }
+#Layer_1 .st5  { fill: var(--c-bg); stroke: var(--c-outline); }
+#Layer_1 .st6  { fill: var(--c-fill); }
+#Layer_1 .st7  { fill: var(--c-outline); }
+#Layer_1 .st8  { fill: var(--c-outline); }
+#Layer_1 .st9  { fill: var(--c-bg); }
+#Layer_1 .st10 { fill: var(--c-fill); }
+
+/* ── Cookie character elements ────────────────────────────────────────────── */
+#cookies-cookie,
+#cookies-cookie_x5F_chocolate,
+#cookies-eye_x5F_R,
+#cookies-eye_x5F_L,
+#cookies-pupils_x5F_mask {
+  transition: opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ── Pupil groups ─────────────────────────────────────────────────────────── */
+#cookies-pupil_x5F_R,
+#cookies-pupil_x5F_L {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+#cookies-accept_x5F_button_x5F_fill,
+#cookies-accept_x5F_button_x5F_body,
+#cookies-accept_x5F_txt    { cursor: pointer; }
+
+#cookies-deny_x5F_button_x5F_body,
+#cookies-deny_x5F_txt      { cursor: pointer; }
+
+/* Button groups — transform-box for Web Animations ─────────────────────── */
+#cookies-accept_x5F_button_x5F_fill,
+#cookies-accept_x5F_button_x5F_body,
+#cookies-deny_x5F_button_x5F_body {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+/* Reaction overlay ────────────────────────────────────────────────────────── */
+#lottie-react {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+}

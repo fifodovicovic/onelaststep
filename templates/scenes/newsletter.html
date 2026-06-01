@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}ONE LAST STEP — Newsletter{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/newsletter.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="scene-stage">
+  <div class="window-wrapper" id="window-wrapper">
+    {{ svg | safe }}
+    <div id="lottie-hand" class="lottie-overlay"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/newsletter.js') }}"></script>
+{% endblock %}

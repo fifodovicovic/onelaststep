@@ -1,0 +1,43 @@
+.window-wrapper {
+  width: min(66vw, 620px);
+}
+
+#Layer_1 {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+#Layer_1 > text { display: none; }
+
+/* ── Color overrides — captcha.svg class map ────────────────────────────────
+   st0           = fill:none
+   st1           = dark accent (outline)
+   st2           = outline fill (pupils / text)
+   st3           = fill + outline stroke (body fill? pink)
+   st4           = bg fill + outline stroke (eye whites, body window)
+   st5           = bg fill + outline stroke (checkbox body)
+   ─────────────────────────────────────────────────────────────────────────── */
+#Layer_1 .st0 { fill: none; }
+#Layer_1 .st1 { fill: var(--c-outline); }
+#Layer_1 .st2 { fill: var(--c-outline); }
+#Layer_1 .st3 { fill: var(--c-fill); stroke: var(--c-outline); }
+#Layer_1 .st4 { fill: var(--c-bg); stroke: var(--c-outline); }
+#Layer_1 .st5 { fill: var(--c-bg); stroke: var(--c-outline); }
+
+/* ── Pupil groups ─────────────────────────────────────────────────────────── */
+#captcha-pupil_x5F_R,
+#captcha-pupil_x5F_L {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+/* ── Checkbox ──────────────────────────────────────────────────────────────── */
+#captcha-checkbox { cursor: pointer; }
+
+#captcha-dontshow_x5F_checkmark {
+  display: none;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}

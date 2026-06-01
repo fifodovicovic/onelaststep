@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}ONE LAST STEP — Location{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/location.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="scene-stage">
+  <div class="window-wrapper placeholder-window" id="window-wrapper">
+    <div class="placeholder-label">LOCATION PERMISSION</div>
+    <div class="placeholder-note">Asset not yet available — placeholder</div>
+    <div class="placeholder-buttons">
+      <button class="ph-btn" id="loc-allow">ALLOW</button>
+      <button class="ph-btn ph-btn--ghost" id="loc-block">BLOCK</button>
+    </div>
+    <div class="placeholder-sub" id="loc-dontshow">DON'T SHOW THIS AGAIN</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/location.js') }}"></script>
+{% endblock %}

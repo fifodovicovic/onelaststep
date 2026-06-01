@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}ONE LAST STEP — Dead{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dead.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="scene-stage">
+  <div id="layers-container">
+    <div class="dead-layer" id="layer-0">
+      {{ svg | safe }}
+      <div id="lottie-dead-0" class="lottie-overlay"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+<script src="{{ url_for('static', filename='js/dead.js') }}"></script>
+{% endblock %}
