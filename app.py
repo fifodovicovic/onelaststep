@@ -1,6 +1,7 @@
 import os
 import re
-from flask import Flask, render_template, send_from_directory, make_response
+import random
+from flask import Flask, render_template, send_from_directory, make_response, redirect
 
 app = Flask(__name__)
 
@@ -74,9 +75,11 @@ def cursor_mys():
     return resp
 
 
+LOOP_SCENES = ['loading', 'cookies', 'newsletter', 'captcha', 'update']
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return redirect('/scene/' + random.choice(LOOP_SCENES))
 
 
 @app.route('/scene/checkbox')

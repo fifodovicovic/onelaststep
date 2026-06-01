@@ -79,7 +79,7 @@
     if (!currentSeg) {
       if (segQueue.length === 0) {
         barDone = true;
-        setTimeout(() => { window.location.href = '/scene/dead'; }, 900);
+        setTimeout(() => { window.OLS.navigate('loading'); }, 900);
         return;
       }
       currentSeg = segQueue.shift();
@@ -99,7 +99,7 @@
 
       if (barWidth >= MAX_WIDTH) {
         barDone = true;
-        setTimeout(() => { window.location.href = '/scene/dead'; }, 900);
+        setTimeout(() => { window.OLS.navigate('loading'); }, 900);
         return;
       }
       phase      = 'pausing';

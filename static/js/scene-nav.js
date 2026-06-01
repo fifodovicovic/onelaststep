@@ -4,7 +4,7 @@
   // ── Scenes that participate in the main random loop ──────────────────────
   // loading→dead→ok is a fixed sub-sequence; loading enters here as one unit.
   // dead and ok are always reached through that sub-sequence, not directly.
-  const LOOP_SCENES = ['loading', 'cookies', 'newsletter', 'captcha', 'update'];
+  const LOOP_SCENES = ['loading', 'dead', 'ok', 'newsletter', 'cookies', 'captcha', 'update', 'location'];
 
   function getQueue() {
     try { return JSON.parse(sessionStorage.getItem('ols_queue') || '[]'); } catch (e) { return []; }

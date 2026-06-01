@@ -183,7 +183,7 @@
           layers = layers.filter(l => l !== layer);
 
           if (layers.length === 0) {
-            setTimeout(() => { window.location.href = '/scene/ok'; }, 400);
+            setTimeout(() => { window.OLS.navigate('dead'); }, 400);
           }
         }, 500);
       });
