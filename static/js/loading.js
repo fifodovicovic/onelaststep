@@ -112,19 +112,48 @@
 
   requestAnimationFrame(barFrame);
 
-  // ── Eye tracking — per-eye, prevents cross-socket escape ─────────────────
-  const pupilL = document.getElementById('pupil_x5F_L');
-  const pupilR = document.getElementById('pupil_x5F_R');
+  // ── Eye tracking — getBBox approach ──────────────────────────────────────
+  const EYE_INSET = 0.18;
 
-  const LERP  = 0.1;
-  const MAX_X = 25;  // reduced to keep pupils inside sockets
-  const MAX_Y = 7;
+  let eyes = null;
 
-  // Eye-socket centers in SVG user-unit space (estimated from paths)
-  const eyes = [
-    { el: pupilL, cx: 896, cy: 521, curX: 0, curY: 0, targX: 0, targY: 0 },
-    { el: pupilR, cx: 1018, cy: 521, curX: 0, curY: 0, targX: 0, targY: 0 },
-  ];
+  function makeEye(eyeEl, pupilEl, lerp) {
+    pupilEl.setAttribute('transform', 'translate(0,0)');
+    const ebb = eyeEl.getBBox();
+    const pbb = pupilEl.getBBox();
+    const cx  = pbb.x + pbb.width  / 2;
+    const cy  = pbb.y + pbb.height / 2;
+    const ix  = ebb.width  * EYE_INSET;
+    const iy  = ebb.height * EYE_INSET;
+    return {
+      el: pupilEl, lerp, cx, cy,
+      minDX: ebb.x             + ix - cx,
+      maxDX: ebb.x + ebb.width - ix - cx,
+      minDY: ebb.y              + iy - cy,
+      maxDY: ebb.y + ebb.height - iy - cy,
+      curX: 0, curY: 0, targX: 0, targY: 0,
+    };
+  }
+
+  const FOLLOW_DIST = 350;
+  let midX = 0, midY = 0;
+
+  function initEyes() {
+    eyes = [
+      makeEye(
+        document.getElementById('loading-eye_x5F_R'),
+        document.getElementById('pupil_x5F_R'),
+        0.13
+      ),
+      makeEye(
+        document.getElementById('loading-eye_x5F_L'),
+        document.getElementById('pupil_x5F_L'),
+        0.10
+      ),
+    ];
+    midX = (eyes[0].cx + eyes[1].cx) / 2;
+    midY = (eyes[0].cy + eyes[1].cy) / 2;
+  }
 
   function toSVGCoords(clientX, clientY) {
     const rect = svg.getBoundingClientRect();
@@ -135,33 +164,45 @@
     };
   }
 
-  function setTargets(mx, my) {
-    eyes.forEach(eye => {
-      const dx   = mx - eye.cx;
-      const dy   = my - eye.cy;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 0.5) { eye.targX = 0; eye.targY = 0; return; }
-      const t     = Math.min(dist / 260, 1);
-      const angle = Math.atan2(dy, dx);
-      eye.targX   = Math.cos(angle) * MAX_X * t;
-      eye.targY   = Math.sin(angle) * MAX_Y * t;
-    });
-  }
-
+  let mouseX = 0, mouseY = 0;
   document.addEventListener('mousemove', ev => {
-    const pos = toSVGCoords(ev.clientX, ev.clientY);
-    setTargets(pos.x, pos.y);
+    const p = toSVGCoords(ev.clientX, ev.clientY);
+    mouseX = p.x;
+    mouseY = p.y;
   });
 
-  function tick() {
+  function setTargets(mx, my) {
+    if (!eyes) return;
+    const dx    = mx - midX;
+    const dy    = my - midY;
+    const dist  = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 1) { eyes.forEach(e => { e.targX = 0; e.targY = 0; }); return; }
+    const t     = Math.min(dist / FOLLOW_DIST, 1);
+    const angle = Math.atan2(dy, dx);
+    const ux    = Math.cos(angle) * t;
+    const uy    = Math.sin(angle) * t;
     eyes.forEach(e => {
-      e.curX += (e.targX - e.curX) * LERP;
-      e.curY += (e.targY - e.curY) * LERP;
-      e.el.setAttribute('transform',
-        `translate(${e.curX.toFixed(2)},${e.curY.toFixed(2)})`);
+      const tx = ux * (ux >= 0 ? e.maxDX : -e.minDX);
+      const ty = uy * (uy >= 0 ? e.maxDY : -e.minDY);
+      e.targX  = Math.max(e.minDX, Math.min(e.maxDX, tx));
+      e.targY  = Math.max(e.minDY, Math.min(e.maxDY, ty));
     });
+  }
+
+  function tick() {
+    setTargets(mouseX, mouseY);
+    if (eyes) {
+      eyes.forEach(e => {
+        e.curX += (e.targX - e.curX) * e.lerp;
+        e.curY += (e.targY - e.curY) * e.lerp;
+        e.el.setAttribute('transform',
+          `translate(${e.curX.toFixed(2)},${e.curY.toFixed(2)})`);
+      });
+    }
     requestAnimationFrame(tick);
   }
+
+  initEyes();
   tick();
 
   // ── Mad-face Lottie overlay ───────────────────────────────────────────────

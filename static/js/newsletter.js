@@ -4,23 +4,48 @@
   const svg     = document.getElementById('Layer_1');
   const wrapper = document.getElementById('window-wrapper');
 
-  // ── Eye tracking ──────────────────────────────────────────────────────────
-  const pupilL = document.getElementById('newsletter-pupil_x5F_L');
-  const pupilR = document.getElementById('newsletter-pupil_x5F_R');
+  // ── Eye tracking — getBBox approach ───────────────────────────────────────
+  // Each pupil moves to the closest point to the cursor within its own EYE shape.
+  // getBBox() reads actual DOM geometry — zero hardcoded coordinates.
 
-  const LERP  = 0.1;
-  const MAX_X = 28;
-  const MAX_Y = 8;
-  const MID_X = 970;   // midpoint between both eye centers (SVG units)
-  const MID_Y = 257;
+  let eyes = null;
 
-  const eyes = [
-    { el: pupilL, curX: 0, curY: 0, targX: 0, targY: 0 },
-    { el: pupilR, curX: 0, curY: 0, targX: 0, targY: 0 },
-  ];
+  const EYE_INSET = 0.18;
 
-  let mousePt  = { x: MID_X, y: MID_Y };
-  let glancePt = null;  // overrides mouse when set
+  function makeEye(eyeEl, pupilEl, lerp) {
+    pupilEl.setAttribute('transform', 'translate(0,0)');
+    const ebb  = eyeEl.getBBox();
+    const pbb  = pupilEl.getBBox();
+    const cx   = pbb.x + pbb.width  / 2;
+    const cy   = pbb.y + pbb.height / 2;
+    const ix   = ebb.width  * EYE_INSET;
+    const iy   = ebb.height * EYE_INSET;
+    return {
+      el: pupilEl, lerp, cx, cy,
+      minDX: ebb.x          + ix - cx,
+      maxDX: ebb.x + ebb.width  - ix - cx,
+      minDY: ebb.y          + iy - cy,
+      maxDY: ebb.y + ebb.height - iy - cy,
+      curX: 0, curY: 0, targX: 0, targY: 0,
+    };
+  }
+
+  function initEyes() {
+    eyes = [
+      makeEye(
+        document.getElementById('newsletter-eye_x5F_R'),
+        document.getElementById('newsletter-pupil_x5F_R'),
+        0.13
+      ),
+      makeEye(
+        document.getElementById('newsletter-eye_x5F_L'),
+        document.getElementById('newsletter-pupil_x5F_L'),
+        0.10
+      ),
+    ];
+    midX = (eyes[0].cx + eyes[1].cx) / 2;
+    midY = (eyes[0].cy + eyes[1].cy) / 2;
+  }
 
   function toSVGCoords(clientX, clientY) {
     const rect = svg.getBoundingClientRect();
@@ -31,37 +56,51 @@
     };
   }
 
-  function setTargets(pt) {
-    const dx   = pt.x - MID_X;
-    const dy   = pt.y - MID_Y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 0.5) { eyes.forEach(e => { e.targX = 0; e.targY = 0; }); return; }
-    const t     = Math.min(dist / 280, 1);
-    const angle = Math.atan2(dy, dx);
-    eyes.forEach(e => {
-      e.targX = Math.cos(angle) * MAX_X * t;
-      e.targY = Math.sin(angle) * MAX_Y * t;
-    });
-  }
+  const FOLLOW_DIST = 350;
+  let midX = 0, midY = 0;
+
+  let mousePt  = { x: 960, y: 260 };
+  let glancePt = null;  // overrides mouse when set
 
   document.addEventListener('mousemove', ev => {
     mousePt = toSVGCoords(ev.clientX, ev.clientY);
   });
 
+  function setTargets(pt) {
+    if (!eyes) return;
+    const dx    = pt.x - midX;
+    const dy    = pt.y - midY;
+    const dist  = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 1) { eyes.forEach(e => { e.targX = 0; e.targY = 0; }); return; }
+    const t     = Math.min(dist / FOLLOW_DIST, 1);
+    const angle = Math.atan2(dy, dx);
+    const ux    = Math.cos(angle) * t;
+    const uy    = Math.sin(angle) * t;
+    eyes.forEach(e => {
+      const tx = ux * (ux >= 0 ? e.maxDX : -e.minDX);
+      const ty = uy * (uy >= 0 ? e.maxDY : -e.minDY);
+      e.targX  = Math.max(e.minDX, Math.min(e.maxDX, tx));
+      e.targY  = Math.max(e.minDY, Math.min(e.maxDY, ty));
+    });
+  }
+
   function tick() {
     setTargets(glancePt || mousePt);
-    eyes.forEach(e => {
-      e.curX += (e.targX - e.curX) * LERP;
-      e.curY += (e.targY - e.curY) * LERP;
-      e.el.setAttribute('transform',
-        `translate(${e.curX.toFixed(2)},${e.curY.toFixed(2)})`);
-    });
+    if (eyes) {
+      eyes.forEach(e => {
+        e.curX += (e.targX - e.curX) * e.lerp;
+        e.curY += (e.targY - e.curY) * e.lerp;
+        e.el.setAttribute('transform',
+          `translate(${e.curX.toFixed(2)},${e.curY.toFixed(2)})`);
+      });
+    }
     requestAnimationFrame(tick);
   }
+
+  initEyes();
   tick();
 
   // ── Periodic glances toward toggles ───────────────────────────────────────
-  // Toggle centers in SVG coordinates (approx)
   const GLANCE_TARGETS = [
     { x: 1179, y: 551 },  // turnon toggle
     { x: 1179, y: 393 },  // signup toggle
@@ -77,35 +116,30 @@
   scheduleGlance();
 
   // ── Toggle switches ───────────────────────────────────────────────────────
-  // The ON switch element is the pink one at the right position.
-  // The OFF switch element is the white one at the left position.
-  // TOGGLE_DX: x distance in SVG units from OFF position to ON position.
   const TOGGLE_DX = 58;
 
   const TOGGLES = [
     {
-      name:     'turnon',
-      body:     document.getElementById('newsletter-turnon_x5F_toggle_x5F_body'),
-      swOn:     document.getElementById('newsletter-turnon_x5F_toggle_x5F_switch_x5F_on'),
-      swOff:    document.getElementById('newsletter-turnon_x5F_toggle_x5F_switch_x5F_off'),
-      isOn:     true,
-      busy:     false,
+      name:  'turnon',
+      body:  document.getElementById('newsletter-turnon_x5F_toggle_x5F_body'),
+      swOn:  document.getElementById('newsletter-turnon_x5F_toggle_x5F_switch_x5F_on'),
+      swOff: document.getElementById('newsletter-turnon_x5F_toggle_x5F_switch_x5F_off'),
+      isOn:  true,
+      busy:  false,
     },
     {
-      name:     'signup',
-      body:     document.getElementById('newsletter-signup_x5F_toggle_x5F_body'),
-      swOn:     document.getElementById('newsletter-signup_x5F_toggle_x5F_switch_x5F_on'),
-      swOff:    document.getElementById('newsletter-signup_x5F_toggle_x5F_switch_x5F_off'),
-      isOn:     true,
-      busy:     false,
+      name:  'signup',
+      body:  document.getElementById('newsletter-signup_x5F_toggle_x5F_body'),
+      swOn:  document.getElementById('newsletter-signup_x5F_toggle_x5F_switch_x5F_on'),
+      swOff: document.getElementById('newsletter-signup_x5F_toggle_x5F_switch_x5F_off'),
+      isOn:  true,
+      busy:  false,
     },
   ];
 
-  // Total system flip-backs before giving up (per the brief: 3–4 times)
   let totalFlipsBack = 0;
   const MAX_FLIPS    = 3 + Math.floor(Math.random() * 2);
 
-  // ── rAF-based SVG translate animation ────────────────────────────────────
   function animateSVGTranslateX(el, fromX, toX, duration, done) {
     const t0 = performance.now();
     function frame(ts) {
@@ -123,8 +157,6 @@
     requestAnimationFrame(frame);
   }
 
-  // ── Red circle placeholder: stands in for the hand animation ─────────────
-  // Blue = JSON animation in the PDF. Hand JSON not yet available.
   const handDot = (function () {
     const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     c.setAttribute('r', '16');
@@ -148,63 +180,45 @@
       [{ opacity: 0 }, { opacity: 0.9, offset: 0.2 }, { opacity: 0 }],
       { duration: 700, easing: 'ease-in-out' }
     );
-    // Eyes glance at the toggle while "hand" acts
     glancePt = { x: pos.x, y: pos.y };
     setTimeout(() => { glancePt = null; }, 900);
   }
 
-  // ── Flip toggle to OFF ────────────────────────────────────────────────────
   function flipOff(toggle, done) {
     const { swOn, swOff } = toggle;
-
-    // Reveal swOff at left position, faded out
-    swOff.style.display   = 'block';
+    swOff.style.display    = 'block';
     swOff.style.transition = 'opacity 0.18s ease';
-    swOff.style.opacity   = '0';
-    // Force reflow
+    swOff.style.opacity    = '0';
     swOff.getBoundingClientRect(); // eslint-disable-line
     swOff.style.opacity = '1';
-
-    // Slide swOn from right (0) to left (-TOGGLE_DX)
     animateSVGTranslateX(swOn, 0, -TOGGLE_DX, 200, () => {
       swOn.style.display = 'none';
       if (done) done();
     });
   }
 
-  // ── Flip toggle to ON ─────────────────────────────────────────────────────
   function flipOn(toggle, done) {
     const { swOn, swOff } = toggle;
-
-    // Position swOn at left, hidden
     swOn.setAttribute('transform', `translate(${-TOGGLE_DX},0)`);
-    swOn.style.display = 'block';
-
-    // Fade swOff out
+    swOn.style.display     = 'block';
     swOff.style.transition = 'opacity 0.18s ease';
     swOff.style.opacity    = '0';
     setTimeout(() => { swOff.style.display = 'none'; }, 190);
-
-    // Slide swOn from left (-TOGGLE_DX) to right (0)
     animateSVGTranslateX(swOn, -TOGGLE_DX, 0, 200, () => {
       swOn.setAttribute('transform', 'translate(0,0)');
       if (done) done();
     });
   }
 
-  // ── Toggle click handler ──────────────────────────────────────────────────
   function handleToggle(toggle) {
     if (toggle.busy) return;
     toggle.busy = true;
 
     if (toggle.isOn) {
-      // User turns OFF
       toggle.isOn = false;
       flipOff(toggle, () => {
         toggle.busy = false;
-
         if (totalFlipsBack < MAX_FLIPS) {
-          // System fights back: flip back ON after short delay
           const delay = 550 + Math.random() * 500;
           setTimeout(() => {
             if (!toggle.isOn && !toggle.busy) {
@@ -219,15 +233,12 @@
           }, delay);
         }
       });
-
     } else {
-      // User turns ON
       toggle.isOn = true;
       flipOn(toggle, () => { toggle.busy = false; });
     }
   }
 
-  // ── Initialise toggle state: both ON, swOff hidden ────────────────────────
   TOGGLES.forEach(t => {
     if (t.swOff) t.swOff.style.display = 'none';
     [t.body, t.swOn, t.swOff].forEach(el => {

@@ -9,11 +9,9 @@
 
 {% block content %}
 <div class="scene-stage">
-  <div id="layers-container">
-    <div class="dead-layer" id="layer-0">
-      {{ svg | safe }}
-      <div id="lottie-dead-0" class="lottie-overlay"></div>
-    </div>
+  <div id="window-wrapper" class="window-wrapper">
+    {{ svg | safe }}
+    <div id="lottie-dead" class="lottie-overlay"></div>
   </div>
 </div>
 {% endblock %}

@@ -4,22 +4,51 @@
   const svg     = document.getElementById('Layer_1');
   const wrapper = document.getElementById('window-wrapper');
 
-  // ── Eye tracking ──────────────────────────────────────────────────────────
-  // Cookie face eyes are at approx SVG coords (on the cookie character):
-  // R eye center: (730, 528)  L eye center: (636, 528)  mid: (683, 528)
-  const pupilR = document.getElementById('cookies-pupil_x5F_R');
-  const pupilL = document.getElementById('cookies-pupil_x5F_L');
+  // ── Eye tracking — getBBox approach ───────────────────────────────────────
+  // Each pupil moves to the closest point to the cursor within its own EYE shape.
+  // getBBox() reads actual DOM geometry — zero hardcoded coordinates.
 
-  const LERP  = 0.1;
-  const MAX_X = 14;
-  const MAX_Y = 5;
-  const MID_X = 683;
-  const MID_Y = 528;
+  let eyes = null;
 
-  const eyes = [
-    { el: pupilR, curX: 0, curY: 0, targX: 0, targY: 0 },
-    { el: pupilL, curX: 0, curY: 0, targX: 0, targY: 0 },
-  ];
+  const EYE_INSET = 0.18;
+
+  function makeEye(eyeEl, pupilEl, lerp) {
+    pupilEl.setAttribute('transform', 'translate(0,0)');
+    const ebb  = eyeEl.getBBox();
+    const pbb  = pupilEl.getBBox();
+    const cx   = pbb.x + pbb.width  / 2;
+    const cy   = pbb.y + pbb.height / 2;
+    const ix   = ebb.width  * EYE_INSET;
+    const iy   = ebb.height * EYE_INSET;
+    return {
+      el: pupilEl, lerp, cx, cy,
+      minDX: ebb.x          + ix - cx,
+      maxDX: ebb.x + ebb.width  - ix - cx,
+      minDY: ebb.y          + iy - cy,
+      maxDY: ebb.y + ebb.height - iy - cy,
+      curX: 0, curY: 0, targX: 0, targY: 0,
+    };
+  }
+
+  const FOLLOW_DIST = 250; // cookies face is compact — shorter distance feels right
+  let midX = 0, midY = 0;
+
+  function initEyes() {
+    eyes = [
+      makeEye(
+        document.getElementById('cookies-eye_x5F_R'),
+        document.getElementById('cookies-pupil_x5F_R'),
+        0.13
+      ),
+      makeEye(
+        document.getElementById('cookies-eye_x5F_L'),
+        document.getElementById('cookies-pupil_x5F_L'),
+        0.10
+      ),
+    ];
+    midX = (eyes[0].cx + eyes[1].cx) / 2;
+    midY = (eyes[0].cy + eyes[1].cy) / 2;
+  }
 
   function toSVGCoords(clientX, clientY) {
     const rect = svg.getBoundingClientRect();
@@ -30,37 +59,48 @@
     };
   }
 
-  function setTargets(mx, my) {
-    const dx   = mx - MID_X;
-    const dy   = my - MID_Y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 0.5) { eyes.forEach(e => { e.targX = 0; e.targY = 0; }); return; }
-    const t     = Math.min(dist / 200, 1);
-    const angle = Math.atan2(dy, dx);
-    eyes.forEach(e => {
-      e.targX = Math.cos(angle) * MAX_X * t;
-      e.targY = Math.sin(angle) * MAX_Y * t;
-    });
-  }
-
+  let mouseX = 0, mouseY = 0;
   document.addEventListener('mousemove', ev => {
     const p = toSVGCoords(ev.clientX, ev.clientY);
-    setTargets(p.x, p.y);
+    mouseX = p.x;
+    mouseY = p.y;
   });
 
-  function tick() {
+  function setTargets(mx, my) {
+    if (!eyes) return;
+    const dx    = mx - midX;
+    const dy    = my - midY;
+    const dist  = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 1) { eyes.forEach(e => { e.targX = 0; e.targY = 0; }); return; }
+    const t     = Math.min(dist / FOLLOW_DIST, 1);
+    const angle = Math.atan2(dy, dx);
+    const ux    = Math.cos(angle) * t;
+    const uy    = Math.sin(angle) * t;
     eyes.forEach(e => {
-      e.curX += (e.targX - e.curX) * LERP;
-      e.curY += (e.targY - e.curY) * LERP;
-      e.el.setAttribute('transform',
-        `translate(${e.curX.toFixed(2)},${e.curY.toFixed(2)})`);
+      const tx = ux * (ux >= 0 ? e.maxDX : -e.minDX);
+      const ty = uy * (uy >= 0 ? e.maxDY : -e.minDY);
+      e.targX  = Math.max(e.minDX, Math.min(e.maxDX, tx));
+      e.targY  = Math.max(e.minDY, Math.min(e.maxDY, ty));
     });
+  }
+
+  function tick() {
+    setTargets(mouseX, mouseY);
+    if (eyes) {
+      eyes.forEach(e => {
+        e.curX += (e.targX - e.curX) * e.lerp;
+        e.curY += (e.targY - e.curY) * e.lerp;
+        e.el.setAttribute('transform',
+          `translate(${e.curX.toFixed(2)},${e.curY.toFixed(2)})`);
+      });
+    }
     requestAnimationFrame(tick);
   }
+
+  initEyes();
   tick();
 
   // ── Red-circle placeholder — stands in for smile/angry/headshake Lottie ──
-  // Blue = JSON animation in design PDF. Assets not yet available.
   const placeholder = (function () {
     const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     c.setAttribute('r', '20');
@@ -80,7 +120,7 @@
     );
   }
 
-  // ── Cookie face elements (hide on DENY) ────────────────────────────────────
+  // ── Cookie face elements (hide on DENY) ───────────────────────────────────
   const cookieFace = [
     document.getElementById('cookies-cookie'),
     document.getElementById('cookies-cookie_x5F_chocolate'),
@@ -90,7 +130,6 @@
   ].filter(Boolean);
 
   let faceVisible = true;
-  let denyCount   = 0;
 
   function hideFace() {
     faceVisible = false;
@@ -142,7 +181,6 @@
     el.addEventListener('mouseenter', () => {
       acceptHovered = true;
       hoverScale(acceptEls, 1.05);
-      // Smile placeholder at cookie mouth area (approx SVG center of cookie face)
       showPlaceholder(680, 570);
     });
     el.addEventListener('mouseleave', () => {
@@ -168,7 +206,6 @@
     el.addEventListener('mouseenter', () => {
       denyHovered = true;
       hoverScale(denyEls, 1.05);
-      // Angry placeholder at cookie face
       showPlaceholder(680, 540);
     });
     el.addEventListener('mouseleave', () => {
@@ -176,14 +213,9 @@
       hoverScale(denyEls, 1.0);
     });
     el.addEventListener('click', () => {
-      denyCount++;
       pressButton(denyEls, denyHovered);
-
-      // Hide face, show headshake placeholder
       hideFace();
       showPlaceholder(680, 528);
-
-      // After headshake, show face again
       setTimeout(showFace, 1200);
     });
   });

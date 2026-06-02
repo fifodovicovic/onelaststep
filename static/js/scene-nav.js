@@ -1,10 +1,11 @@
 (function () {
   'use strict';
 
-  // ── Scenes that participate in the main random loop ──────────────────────
-  // loading→dead→ok is a fixed sub-sequence; loading enters here as one unit.
-  // dead and ok are always reached through that sub-sequence, not directly.
+  // ── Scenes that participate in the main loop ──────────────────────────────
   const LOOP_SCENES = ['loading', 'dead', 'ok', 'newsletter', 'cookies', 'captcha', 'update', 'location'];
+
+  // ── DEBUG: set true for sequential 1–8 order, false for random ───────────
+  const DEBUG_SEQUENTIAL = true;
 
   function getQueue() {
     try { return JSON.parse(sessionStorage.getItem('ols_queue') || '[]'); } catch (e) { return []; }
@@ -23,11 +24,15 @@
     return a;
   }
 
-  // Returns the URL of the next scene. Builds/manages a shuffled queue so
-  // the same scene doesn't repeat consecutively.
   window.OLS = window.OLS || {};
 
   window.OLS.nextScene = function (currentScene) {
+    if (DEBUG_SEQUENTIAL) {
+      const idx  = LOOP_SCENES.indexOf(currentScene);
+      const next = LOOP_SCENES[(idx + 1) % LOOP_SCENES.length];
+      return '/scene/' + next;
+    }
+    // Random shuffled queue — never repeats consecutively
     let queue = getQueue().filter(s => s !== currentScene);
     if (queue.length === 0) {
       queue = shuffle(LOOP_SCENES).filter(s => s !== currentScene);
@@ -41,13 +46,38 @@
     window.location.href = window.OLS.nextScene(currentScene);
   };
 
+  // ── Space bar — skip immediately to next scene ────────────────────────────
+  document.addEventListener('keydown', function (ev) {
+    if (ev.code === 'Space' || ev.key === ' ') {
+      ev.preventDefault();
+      const match = window.location.pathname.match(/\/scene\/([^/]+)/);
+      const currentScene = match ? match[1] : '';
+      window.OLS.navigate(currentScene);
+    }
+  });
+
   // ── Shared cursor loader — called once per page ───────────────────────────
+  // Injects a <style> with !important so the custom cursor is ALWAYS shown —
+  // even when the browser would normally switch to the native pointer cursor
+  // on interactive elements (SVG shapes with cursor:pointer, buttons, etc.).
   window.OLS.loadCursor = function () {
     fetch('/cursor/mys.svg?v=' + Date.now())
       .then(function (r) { return r.text(); })
       .then(function (svgText) {
         var uri = 'data:image/svg+xml,' + encodeURIComponent(svgText);
-        document.body.style.cursor = 'url("' + uri + '") 2 2, auto';
+        var rule = 'url("' + uri + '") 2 2, auto';
+
+        // Apply to body (fallback)
+        document.body.style.cursor = rule;
+
+        // Inject global override so no element can revert to native pointer
+        var style = document.getElementById('ols-cursor-override');
+        if (!style) {
+          style = document.createElement('style');
+          style.id = 'ols-cursor-override';
+          document.head.appendChild(style);
+        }
+        style.textContent = '*, *::before, *::after { cursor: ' + rule + ' !important; }';
       });
   };
 

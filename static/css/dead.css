@@ -1,50 +1,28 @@
-/* ── Layers container — replaces .window-wrapper for dead scene ─────────── */
-#layers-container {
-  position: relative;
-  overflow: visible;
-  width: min(66vw, 620px);
-}
+/* dead scene — single window, no stacking */
 
-/* Base layer: relative flow — establishes container height */
-.dead-layer {
-  position: relative;
-  width: 100%;
-}
-
-/* Spawned layers: absolute, stacked on top */
-.dead-layer.absolute-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-}
-
-/* SVG inside each layer */
-.dead-layer svg {
+#window-wrapper > svg {
   width: 100%;
   height: auto;
   display: block;
   overflow: visible;
-  /* transform-origin for squish animations */
-  transform-box: fill-box;
-  transform-origin: center center;
 }
 
-.dead-layer svg > text { display: none; }
+/* hide stray <text> nodes Illustrator sometimes exports */
+#window-wrapper > svg > text { display: none; }
 
-/* RELOAD button — cursor pointer (buttons become active after all layers spawn) */
+/* RELOAD button — cursor managed by JS (default until first death) */
 #dead-button_x5F_body,
-#dead-button_x5F_fill { cursor: pointer; }
+#dead-button_x5F_fill { cursor: default; }
 
-/* Color overrides — dead.svg class map:
-   st0 = RELOAD text shadow (dark pink / outline)
-   st1 = button fill (pink fill + pink stroke)
-   st2 = button body (white fill + pink stroke)
-   st3 = main window body (white fill + pink stroke)
+/* Color map for dead.svg:
+   st0 = RELOAD text shadow (outline colour)
+   st1 = button fill (pink fill + stroke)
+   st2 = button body (white bg + outline stroke)
+   st3 = main window body (white bg + outline stroke)
    st4 = RELOAD text highlight (white fill)
 */
-.dead-layer .st0 { fill: var(--c-outline); }
-.dead-layer .st1 { fill: var(--c-fill); stroke: var(--c-fill); }
-.dead-layer .st2 { fill: var(--c-bg); stroke: var(--c-outline); }
-.dead-layer .st3 { fill: var(--c-bg); stroke: var(--c-outline); }
-.dead-layer .st4 { fill: var(--c-bg); }
+.st0 { fill: var(--c-outline); }
+.st1 { fill: var(--c-fill);   stroke: var(--c-fill); }
+.st2 { fill: var(--c-bg);     stroke: var(--c-outline); }
+.st3 { fill: var(--c-bg);     stroke: var(--c-outline); }
+.st4 { fill: var(--c-bg); }
