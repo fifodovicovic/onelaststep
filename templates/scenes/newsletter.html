@@ -12,10 +12,12 @@
   <div class="window-wrapper" id="window-wrapper">
     {{ svg | safe }}
     <div id="lottie-hand" class="lottie-overlay"></div>
+    <div id="lottie-hand-2" class="lottie-overlay"></div>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 <script src="{{ url_for('static', filename='js/newsletter.js') }}"></script>
 {% endblock %}

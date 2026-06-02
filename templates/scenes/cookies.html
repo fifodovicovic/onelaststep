@@ -11,11 +11,13 @@
 <div class="scene-stage">
   <div class="window-wrapper" id="window-wrapper">
     {{ svg | safe }}
-    <div id="lottie-react" class="lottie-overlay"></div>
+    <div id="lottie-deny-no"  class="lottie-overlay"></div>
+    <div id="lottie-deny-sad" class="lottie-overlay"></div>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 <script src="{{ url_for('static', filename='js/cookies.js') }}"></script>
 {% endblock %}

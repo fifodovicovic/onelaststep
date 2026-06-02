@@ -57,9 +57,10 @@
 #newsletter-continue_x5F_button_x5F_fill { cursor: pointer; }
 
 /* Lottie hand overlay ────────────────────────────────────────────────────── */
-#lottie-hand {
+#lottie-hand,
+#lottie-hand-2 {
   display: none;
   position: absolute;
   pointer-events: none;
-  overflow: visible;
+  overflow: hidden;
 }
