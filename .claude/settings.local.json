@@ -1,7 +1,28 @@
 {
   "permissions": {
     "allow": [
-      "Bash(.venv/bin/python -c \"import flask; print\\('Flask', flask.__version__, '— OK'\\)\")"
+      "Bash(.venv/bin/python -c \"import flask; print\\('Flask', flask.__version__, '— OK'\\)\")",
+      "Bash(pkill -f \"python app.py\")",
+      "Bash(.venv/bin/python app.py)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5001/scene/loading)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5001/scene/dead)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5001/scene/ok)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(xargs kill -9)",
+      "Bash(ls /Users/fifo/HKU/arduino/03_guts/)",
+      "Bash(mkdir -p /Users/fifo/HKU/arduino/03_guts/guts_anim_3_1_arduino)",
+      "Bash(mkdir -p /Users/fifo/HKU/arduino/03_guts/arduino_guts_controller)",
+      "Bash(python3 -c ' *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5001/scene/cookies)",
+      "Bash(git -C /Users/fifo/CLAUDE/hku_design_project add static/css/dead.css static/js/cookies.js static/js/dead.js static/js/loading.js static/js/newsletter.js assety/cookies.svg)",
+      "Bash(git -C /Users/fifo/CLAUDE/hku_design_project commit -m ' *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(gh auth *)",
+      "Read(//Users/fifo/.ssh/**)",
+      "Bash(ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null && git remote set-url origin git@github.com:fifodovicovic/onelaststep.git && git push -u origin main)"
     ]
   }
 }
