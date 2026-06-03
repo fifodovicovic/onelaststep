@@ -10,7 +10,7 @@ html, body {
 }
 
 body {
-  background: #0f0f0f;
+  background: linear-gradient(to top, #ffe4fc 0%, #ffffff 70%);
   color: #fff;
   font-family: system-ui, sans-serif;
 }
