@@ -31,10 +31,22 @@
 
   // ── Eye tracking ──────────────────────────────────────────────────────────
   let eyes = null;
-  const EYE_INSET   = 0.18;
+  const EYE_INSET_X = 0.12;   // horizontálny inset — mierne väčší rozsah
+  const EYE_INSET_Y = 0.0;    // vertikálny — plný rozsah, zretelne hore/dole
   const FOLLOW_DIST = 250;
   let midX = 0, midY = 0;
-  let forcedTarget = null;
+  let forcedTarget  = null;
+  let lottieTransPts = null;  // [{x,y},{x,y}] — direct SVG world coords pre Lottie prechod
+  // Glance stav
+  let glanceActive  = false;
+  let glancePt      = null;
+  let glanceTimer   = null;
+  // Smutné ústa — delay timer
+  let mouthDelayTimer = null;
+  // DENY hover stav — deklarujeme tu aby tick() nepískal TDZ chybu (volaný pred riadkom 355)
+  let denyHovered     = false;
+  let sadPlaying      = false;
+  let sadTransitioning = false;  // true počas 350ms prechodu → oči smerujú do centra
 
   function makeEye(eyeEl, pupilEl, lerp) {
     pupilEl.setAttribute('transform', 'translate(0,0)');
@@ -42,8 +54,8 @@
     const pbb = pupilEl.getBBox();
     const cx  = pbb.x + pbb.width  / 2;
     const cy  = pbb.y + pbb.height / 2;
-    const ix  = ebb.width  * EYE_INSET;
-    const iy  = ebb.height * EYE_INSET;
+    const ix  = ebb.width  * EYE_INSET_X;
+    const iy  = ebb.height * EYE_INSET_Y;
     return {
       el: pupilEl, lerp, cx, cy,
       minDX: ebb.x         + ix - cx,
@@ -83,8 +95,10 @@
 
   function setTargets(mx, my) {
     if (!eyes) return;
-    const fx = forcedTarget ? forcedTarget.x : mx;
-    const fy = forcedTarget ? forcedTarget.y : my;
+    let fx, fy;
+    if (forcedTarget)             { fx = forcedTarget.x; fy = forcedTarget.y; }
+    else if (glanceActive && glancePt) { fx = glancePt.x;   fy = glancePt.y;   }
+    else                          { fx = mx;            fy = my;            }
     const dx   = fx - midX;
     const dy   = fy - midY;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -129,10 +143,13 @@
     const cTf = `translate(${cpX.toFixed(2)},${cpY.toFixed(2)})`;
     cookieCharEls.forEach(el => el.setAttribute('transform', cTf));
 
-    // Eye tracking
-    setTargets(mouseX, mouseY);
+    // Eye tracking — DENY hover: tlačí oči výraznejšie dole (nie počas sad prechodu)
+    const biasY = (denyHovered && !glanceActive && !forcedTarget && !sadTransitioning) ? 100 : 0;
+    setTargets(mouseX, mouseY + biasY);
     if (eyes) {
       eyes.forEach(e => {
+        // Počas sad prechodu: smerujeme oči do centra (0,0) — prirodzená pozícia = Lottie frame 0
+        if (sadTransitioning) { e.targX = 0; e.targY = 0; }
         e.curX += (e.targX - e.curX) * e.lerp;
         e.curY += (e.targY - e.curY) * e.lerp;
         e.el.setAttribute('transform', `translate(${e.curX.toFixed(2)},${e.curY.toFixed(2)})`);
@@ -143,6 +160,39 @@
 
   initEyes();
   tick();
+
+  // ── Accept center — SVG coords pre glance ─────────────────────────────────
+  let acceptCenter = { x: 1100, y: 450 };  // fallback
+  (function initAcceptCenter() {
+    const el = acceptBody || acceptFill;
+    if (!el) return;
+    const bb = el.getBBox();
+    acceptCenter = { x: bb.x + bb.width / 2, y: bb.y + bb.height / 2 };
+  })();
+
+  // ── Glance funkcie ────────────────────────────────────────────────────────
+  function scheduleGlance() {
+    clearTimeout(glanceTimer);
+    glanceTimer = setTimeout(doGlance, 2500 + Math.random() * 3500); // 2.5–6 s
+  }
+
+  function doGlance() {
+    if (!denyHovered || sadPlaying) return;
+    glanceActive = true;
+    glancePt     = acceptCenter;
+    // Pohľad na ACCEPT 1.0–1.8 s, potom naspäť k myške
+    setTimeout(() => {
+      glanceActive = false;
+      glancePt     = null;
+      if (denyHovered && !sadPlaying) scheduleGlance();
+    }, 1000 + Math.random() * 800);
+  }
+
+  function clearGlance() {
+    clearTimeout(glanceTimer);
+    glanceActive = false;
+    glancePt     = null;
+  }
 
   // ── Lottie overlays ───────────────────────────────────────────────────────
   const VB = { x: 560, y: 378, w: 775 };
@@ -174,7 +224,7 @@
   let lottieNoDir    = 1;   // 1=forward, -1=backward
 
   // ── Sad animation lock — blocks all interaction while sad anim plays ───────
-  let sadPlaying = false;
+  // (sadPlaying deklarovaný hore kvôli TDZ)
 
   lottieNo.addEventListener('DOMLoaded', () => {
     positionLottie(lottieNoEl);
@@ -207,17 +257,36 @@
   }
 
   // ── Cookie sad animation ──────────────────────────────────────────────────
+  // Lottie cookie_sad.json — pozície zreničiek na frame 0 (1920×1080 canvas)
+  // eyes[0] = cookies-pupil_x5F_R → R Outlines world: (750.456, 513.97)
+  // eyes[1] = cookies-pupil_x5F_L → L Outlines world: (650.035, 509.49)
+  const SAD_LOTTIE_PTS = [
+    { x: 750.456, y: 513.97 },
+    { x: 650.035, y: 509.49 },
+  ];
+
   function playCookieSad() {
     if (!lottieSadReady) return;
-    sadPlaying = true;
-    // Ease pupils to center before hiding — forcedTarget pulls tick() lerp toward midpoint
-    forcedTarget = { x: midX, y: midY };
+    sadPlaying     = true;
+    sadTransitioning = true;
+    clearGlance();
+    forcedTarget   = null;
+    lottieTransPts = null;
+
+    // Oči lerpia plynulo do centra (0,0) — to je prirodzená poloha = Lottie frame 0
     setTimeout(() => {
-      forcedTarget = null;
+      sadTransitioning = false;
+      // Snap na presnú strednú polohu pred odovzdaním Lottie
+      if (eyes) {
+        eyes.forEach(e => {
+          e.curX = 0; e.curY = 0;
+          e.el.setAttribute('transform', 'translate(0,0)');
+        });
+      }
       hideFace();
       lottieSadEl.style.transition = 'none';
-      lottieSadEl.style.opacity = '1';
-      lottieSadEl.style.display = 'block';
+      lottieSadEl.style.opacity    = '1';
+      lottieSadEl.style.display    = 'block';
       lottieSad.goToAndPlay(0, true);
     }, 350);
   }
@@ -281,7 +350,8 @@
 
   // ── DENY button ───────────────────────────────────────────────────────────
   const denyEls = [denyBody, denyTxt].filter(Boolean);
-  let denyHovered = false;
+  // (denyHovered deklarovaný hore kvôli TDZ)
+  let denyClickHistory = [];  // timestamps — sad animácia len po 3× za 500ms
 
   function isInsideDeny(target) {
     return denyEls.some(el => el === target || el.contains(target));
@@ -291,13 +361,16 @@
     if (denyHovered) return;
     denyHovered = true;
     hoverScale(denyEls, 1.05);
-    if (lottieNoReady) {
+    // Smutné ústa sa objavia až po 1000 ms hoverovania
+    mouthDelayTimer = setTimeout(() => {
+      if (!lottieNoReady || !denyHovered) return;
       lottieNoEl.style.display = 'block';
       lottieNo.setSpeed(1);
       lottieNo.setDirection(1);
       lottieNoDir = 1;
       lottieNo.goToAndPlay(0, true);
-    }
+    }, 1000);
+    scheduleGlance();
   }
 
   function hideMouth() {
@@ -314,6 +387,8 @@
     if (isInsideDeny(ev.relatedTarget)) return;
     denyHovered = false;
     hoverScale(denyEls, 1.0);
+    clearTimeout(mouthDelayTimer);
+    clearGlance();
     hideMouth();
   }
 
@@ -321,7 +396,12 @@
   denyBody.addEventListener('mouseleave', onDenyLeave);
 
   wrapper.addEventListener('mouseleave', () => {
-    if (denyHovered) { denyHovered = false; hoverScale(denyEls, 1.0); }
+    if (denyHovered) {
+      denyHovered = false;
+      hoverScale(denyEls, 1.0);
+      clearTimeout(mouthDelayTimer);
+      clearGlance();
+    }
     hideMouth();
   });
 
@@ -331,7 +411,16 @@
     el.addEventListener('click', ev => {
       ev.stopPropagation();
       pressButton(denyEls, denyHovered);
-      if (!sadPlaying) setTimeout(playCookieSad, 240);
+      // Sad animácia: 3 rýchle kliky (za 500ms) ALEBO 5 klikov kdekoľvek (za 10s)
+      const now = Date.now();
+      denyClickHistory.push(now);
+      denyClickHistory = denyClickHistory.filter(t => now - t <= 10000); // window 10s
+      const fastClicks = denyClickHistory.filter(t => now - t <= 500).length;
+      const totalClicks = denyClickHistory.length;
+      if ((fastClicks >= 3 || totalClicks >= 5) && !sadPlaying) {
+        denyClickHistory = [];
+        setTimeout(playCookieSad, 240);
+      }
     });
   });
 

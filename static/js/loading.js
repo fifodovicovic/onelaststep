@@ -64,8 +64,8 @@
       });
       prev = segs[segs.length - 1].to;
     }
-    // Reach 99%, pause 1500ms — viewer thinks it's almost done
-    segs.push({ to: NEAR_END, duration: 300 + Math.random() * 500, pause: 1500 });
+    // Reach 99%, random pause 1000–3000ms — viewer thinks it's almost done
+    segs.push({ to: NEAR_END, duration: 300 + Math.random() * 500, pause: 1000 + Math.random() * 2000 });
     // Quick final push to 100%
     segs.push({ to: MAX_WIDTH, duration: 200 + Math.random() * 300, pause: 0 });
     return segs;
@@ -101,7 +101,7 @@
       ? currentSeg.to > segFrom
       : (segQueue.length > 0 && segQueue[0].to > barWidth);
 
-    if (playingOut || (goingForward && ts - lastClickMs < FREEZE_DURATION)) {
+    if (goingForward && (playingOut || ts - lastClickMs < FREEZE_DURATION)) {
       if (currentSeg && segStart !== null) segStart = ts; // don't accumulate time
       if (phase === 'pausing') pauseUntil = Math.max(pauseUntil, ts + 16);
       requestAnimationFrame(barFrame);
@@ -116,7 +116,7 @@
     if (!currentSeg) {
       if (segQueue.length === 0) {
         barDone = true;
-        setTimeout(resetBar, 900);
+        setTimeout(() => window.OLS.navigate('loading'), 900);
         return;
       }
       currentSeg = segQueue.shift();
@@ -136,7 +136,7 @@
       if (currentSeg.onComplete) currentSeg.onComplete();
       if (barWidth >= MAX_WIDTH) {
         barDone = true;
-        setTimeout(resetBar, 900);
+        setTimeout(() => window.OLS.navigate('loading'), 900);
         return;
       }
       phase      = 'pausing';
@@ -308,16 +308,28 @@
   // mad_face.json: 50 frames @30fps. Frame 30 = 1s = peak angry.
   const PEAK_FRAME = 30;
   let playingOut   = false;
+  let pendingOut   = false;  // out animation čaká na dokončenie in-animácie
 
   let lottieReady = false;
   lottieAnim.addEventListener('DOMLoaded', () => { positionLottie(); lottieReady = true; });
-  lottieAnim.addEventListener('complete',  () => {
-    if (playingOut) return;  // out animation handled separately
-    // Hold at peak angry frame while user is still clicking
+
+  function startOutAnimation() {
+    pendingOut = false;
+    playingOut = true;
+    lottieAnim.playSegments([PEAK_FRAME, lottieAnim.totalFrames], true);
+    lottieAnim.addEventListener('complete', () => {
+      playingOut = false;
+      recentlySpammed = false;
+      // Lottie zostáva na poslednom frame (normálne ústa) — žiadny skok pri prechode na SVG
+    }, { once: true });
+  }
+
+  lottieAnim.addEventListener('complete', () => {
+    if (playingOut) return;
     if (lottieEl.style.display === 'block') {
       lottieAnim.goToAndStop(PEAK_FRAME, true);
-    } else {
-      if (mouth) mouth.style.display = '';
+      // In-animácia dokončená — ak čaká pendingOut, spusti hneď
+      if (pendingOut) startOutAnimation();
     }
   });
   window.addEventListener('resize', positionLottie);
@@ -396,24 +408,25 @@
       lottieTimer = setTimeout(() => { if (!barDone) showAngryFace(); }, 500);
     }
 
-    // If mid-out-animation when user clicks again — cancel out, snap back to peak
+    // Ak prebieha out-animácia — zruš ju, vráť sa na peak
     if (playingOut) {
       playingOut = false;
+      pendingOut = false;
       lottieAnim.goToAndStop(PEAK_FRAME, true);
     }
 
-    // Play mad-face-out 1000ms after last click
+    // Spusti out-animáciu 1000ms po poslednom kliku
     clearTimeout(angryHideTimer);
     angryHideTimer = setTimeout(() => {
       angryHideTimer = null;
-      playingOut = true;
-      lottieAnim.playSegments([PEAK_FRAME, lottieAnim.totalFrames], true);
-      lottieAnim.addEventListener('complete', () => {
-        playingOut = false;
-        recentlySpammed = false;  // reset only after out animation fully done
-        lottieEl.style.display = 'none';
-        if (mouth) mouth.style.display = '';
-      }, { once: true });
+      if (!lottieEl || lottieEl.style.display !== 'block') return;
+      // Ak je in-animácia hotová (stojí na PEAK_FRAME) — spusti out hneď
+      // Inak nastav flag — spustí sa v complete handleri po dokončení in-animácie
+      if (lottieAnim.isPaused && !playingOut) {
+        startOutAnimation();
+      } else {
+        pendingOut = true;
+      }
     }, FREEZE_DURATION);
 
     // ── Bar reversal ──────────────────────────────────────────────────────

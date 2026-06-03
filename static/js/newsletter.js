@@ -146,10 +146,10 @@
     pCurX += (pTargX - pCurX) * P_LERP;
     pCurY += (pTargY - pCurY) * P_LERP;
 
-    // Layer 0: whole wrapper floats
+    // Layer 0: whole wrapper floats (CSS individual property — nie konflikt so scale animáciami)
     const wpX = pCurX * 25 * PARALLAX_SCALE;
     const wpY = pCurY * 12 * PARALLAX_SCALE;
-    wrapper.style.transform = `translate(${wpX.toFixed(2)}px,${wpY.toFixed(2)}px)`;
+    wrapper.style.translate = `${wpX.toFixed(2)}px ${wpY.toFixed(2)}px`;
 
     // Layer 2: toggle labels
     const tpX = pCurX * 3 * PARALLAX_SCALE;
@@ -292,7 +292,7 @@
   // ── Box click — squish whole window on every click ────────────────────────
   svg.addEventListener('click', () => {
     wrapper.animate(
-      [{ transform: 'scale(1)' }, { transform: 'scale(0.988)', offset: 0.35 }, { transform: 'scale(1)' }],
+      [{ scale: '1' }, { scale: '0.988', offset: 0.35 }, { scale: '1' }],
       { duration: 200, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
     );
   });
