@@ -46,7 +46,8 @@
   // DENY hover stav — deklarujeme tu aby tick() nepískal TDZ chybu (volaný pred riadkom 355)
   let denyHovered     = false;
   let sadPlaying      = false;
-  let sadTransitioning = false;  // true počas 350ms prechodu → oči smerujú do centra
+  let sadTransitioning = false;
+  let sadPhase        = 0;
 
   function makeEye(eyeEl, pupilEl, lerp) {
     pupilEl.setAttribute('transform', 'translate(0,0)');
@@ -143,15 +144,22 @@
     const cTf = `translate(${cpX.toFixed(2)},${cpY.toFixed(2)})`;
     cookieCharEls.forEach(el => el.setAttribute('transform', cTf));
 
+    // Lottie overlay dostáva rovnaký cookie layer 4 parallax offset ako SVG cookie
+    if (sadPlaying && lottieSadEl && lottieSadEl.style.display === 'block') {
+      const lScale = wrapper.offsetWidth / VB.w;
+      lottieSadEl.style.transform = `translate(${(cpX * lScale).toFixed(2)}px,${(cpY * lScale).toFixed(2)}px)`;
+    }
+
     // Eye tracking — DENY hover: tlačí oči výraznejšie dole (nie počas sad prechodu)
     const biasY = (denyHovered && !glanceActive && !forcedTarget && !sadTransitioning) ? 100 : 0;
     setTargets(mouseX, mouseY + biasY);
     if (eyes) {
-      eyes.forEach(e => {
-        // Počas sad prechodu: smerujeme oči do centra (0,0) — prirodzená pozícia = Lottie frame 0
-        if (sadTransitioning) { e.targX = 0; e.targY = 0; }
-        e.curX += (e.targX - e.curX) * e.lerp;
-        e.curY += (e.targY - e.curY) * e.lerp;
+      eyes.forEach((e, i) => {
+        if (sadPhase === 2) { e.targX = SAD_LOTTIE_OFFSET[i].x; e.targY = SAD_LOTTIE_OFFSET[i].y; }
+        else if (sadPhase === 3) { e.targX = e.maxDX; e.targY = 10; }
+        const activeLerp = (sadPhase === 2) ? 0.06 : e.lerp;
+        e.curX += (e.targX - e.curX) * activeLerp;
+        e.curY += (e.targY - e.curY) * activeLerp;
         e.el.setAttribute('transform', `translate(${e.curX.toFixed(2)},${e.curY.toFixed(2)})`);
       });
     }
@@ -257,12 +265,13 @@
   }
 
   // ── Cookie sad animation ──────────────────────────────────────────────────
-  // Lottie cookie_sad.json — pozície zreničiek na frame 0 (1920×1080 canvas)
-  // eyes[0] = cookies-pupil_x5F_R → R Outlines world: (750.456, 513.97)
-  // eyes[1] = cookies-pupil_x5F_L → L Outlines world: (650.035, 509.49)
-  const SAD_LOTTIE_PTS = [
-    { x: 750.456, y: 513.97 },
-    { x: 650.035, y: 509.49 },
+  // Required translate(dx,dy) for each pupil to match Lottie cookie_sad.json frame 0.
+  // Computed as: Lottie_world_center − SVG_natural_center (getBBox at translate(0,0))
+  // eyes[0] = R: Lottie(750.47,514.00) − SVG(767.50,526.19) = (−17.03,−12.19)
+  // eyes[1] = L: Lottie(650.05,509.52) − SVG(667.15,524.60) = (−17.10,−15.08)
+  const SAD_LOTTIE_OFFSET = [
+    { x: -17.03, y: -12.19 },
+    { x: -17.10, y: -15.08 },
   ];
 
   function playCookieSad() {
@@ -273,22 +282,27 @@
     forcedTarget   = null;
     lottieTransPts = null;
 
-    // Oči lerpia plynulo do centra (0,0) — to je prirodzená poloha = Lottie frame 0
+    // Rovno na fázu 2 — z aktuálnej polohy
+    sadPhase = 2;
     setTimeout(() => {
-      sadTransitioning = false;
-      // Snap na presnú strednú polohu pred odovzdaním Lottie
-      if (eyes) {
-        eyes.forEach(e => {
-          e.curX = 0; e.curY = 0;
-          e.el.setAttribute('transform', 'translate(0,0)');
-        });
-      }
-      hideFace();
-      lottieSadEl.style.transition = 'none';
-      lottieSadEl.style.opacity    = '1';
-      lottieSadEl.style.display    = 'block';
-      lottieSad.goToAndPlay(0, true);
-    }, 350);
+      // Fáza 3: vpravo, dole — kde animácia začína
+      sadPhase = 3;
+      setTimeout(() => {
+        sadTransitioning = false;
+        sadPhase = 0;
+        if (eyes) {
+          eyes.forEach(e => {
+            e.curX = e.maxDX; e.curY = 10;
+            e.el.setAttribute('transform', `translate(${e.maxDX},10)`);
+          });
+        }
+        hideFace();
+        lottieSadEl.style.transition = 'none';
+        lottieSadEl.style.opacity    = '1';
+        lottieSadEl.style.display    = 'block';
+        lottieSad.goToAndPlay(0, true);
+      }, 500);
+    }, 1200);
   }
 
   lottieSad.addEventListener('complete', () => {
