@@ -61,6 +61,32 @@
 
   let mousePt = { x: 960, y: 260 };
 
+  // ── Eye roll — deklarácia pred tick() volaním (TDZ rule) ─────────────────
+  let eyeRollActive = false;
+
+  function triggerEyeRoll() {
+    if (eyeRollActive || !eyes) return;
+    eyeRollActive = true;
+    eyes.forEach(e => { e.targX = e.minDX; e.targY = 0; });
+    setTimeout(() => {
+      eyes.forEach(e => { e.targX = e.maxDX; e.targY = 0; });
+      setTimeout(() => { eyeRollActive = false; }, 320);
+    }, 280);
+  }
+
+  // Spam detection pre eye roll
+  let spamClicks = [];
+
+  function trackSpam() {
+    const now = Date.now();
+    spamClicks.push(now);
+    spamClicks = spamClicks.filter(t => now - t < 400);
+    if (spamClicks.length >= 3) {
+      spamClicks = [];
+      triggerEyeRoll();
+    }
+  }
+
   // ── Parallax ──────────────────────────────────────────────────────────────
   const PARALLAX_SCALE = 1.0;
   const P_LERP         = 0.04;
@@ -169,7 +195,7 @@
     });
 
     // Eye tracking
-    setTargets(mousePt);
+    if (!eyeRollActive) setTargets(mousePt);
     if (eyes) {
       eyes.forEach(e => {
         e.curX += (e.targX - e.curX) * e.lerp;
@@ -285,6 +311,8 @@
         t.hoverScaleTarget = 0.84;
         setTimeout(() => { t.hoverScaleTarget = t.isHovered ? 1.06 : 1.0; }, 160);
         handleToggle(t);
+        trackSpam();
+        resetIdleTimer();
       });
     });
   });
@@ -328,9 +356,63 @@
           { duration: 260, easing: 'cubic-bezier(0.34,1.56,0.64,1)' }
         );
       });
+      trackSpam();
+      resetIdleTimer();
       setTimeout(() => window.OLS.navigate('newsletter'), 300);
     });
   });
 
+  // ── ruka_tu idle — ukazuje na Continue button ─────────────────────────────
+  const rukaTuEl    = document.getElementById('lottie-ruka-tu');
+  let rukaTuReady   = false;
+  let rukaTuShowing = false;
+  let idleTimer     = null;
+
+  const lottieRukaTu = lottie.loadAnimation({
+    container: rukaTuEl, renderer: 'svg', loop: true, autoplay: false,
+    path: '/anim/ruka_tu.json',
+  });
+
+  lottieRukaTu.addEventListener('DOMLoaded', () => {
+    positionRukaTu();
+    rukaTuReady = true;
+  });
+
+  function positionRukaTu() {
+    if (!rukaTuEl) return;
+    const scale = wrapper.offsetWidth / HAND_VB.w;
+    rukaTuEl.style.width  = (1920 * scale) + 'px';
+    rukaTuEl.style.height = (1080 * scale) + 'px';
+    rukaTuEl.style.left   = (-HAND_VB.x * scale) + 'px';
+    rukaTuEl.style.top    = (-HAND_VB.y * scale) + 'px';
+  }
+
+  window.addEventListener('resize', positionRukaTu);
+
+  function bothTogglesOn() {
+    return TOGGLES.every(t => t.isOn);
+  }
+
+  function showRukaTu() {
+    if (!rukaTuReady || !bothTogglesOn()) return;
+    rukaTuShowing = true;
+    rukaTuEl.style.display = 'block';
+    lottieRukaTu.goToAndPlay(8, true);
+  }
+
+  function hideRukaTu() {
+    if (!rukaTuShowing) return;
+    rukaTuShowing = false;
+    rukaTuEl.style.display = 'none';
+    lottieRukaTu.stop();
+  }
+
+  function resetIdleTimer() {
+    clearTimeout(idleTimer);
+    if (rukaTuShowing) hideRukaTu();
+    idleTimer = setTimeout(showRukaTu, 5000);
+  }
+
+  resetIdleTimer();
 
 })();

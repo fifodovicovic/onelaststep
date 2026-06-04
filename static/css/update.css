@@ -2,6 +2,18 @@
   width: min(66vw, 620px);
 }
 
+#lottie-ruka-tu {
+  display: none;
+  position: absolute;
+  overflow: hidden;
+  top: 0;
+  left: 0;
+}
+
+#lottie-ruka-tu * {
+  pointer-events: none !important;
+}
+
 #Layer_1 {
   width: 100%;
   height: auto;

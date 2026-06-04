@@ -1,66 +1,91 @@
-/* ── Location scene — placeholder until location.svg asset is ready ─────── */
-
-.placeholder-window {
-  background: var(--c-bg);
-  border: 4px solid var(--c-outline);
-  border-radius: 18px;
-  padding: 3rem 4rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.8rem;
-  width: min(66vw, 560px);
-  font-family: monospace;
+.window-wrapper {
+  width: min(66vw, 620px);
 }
 
-.placeholder-label {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--c-outline);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+#Layer_1 {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
 }
 
-.placeholder-note {
-  font-size: 0.75rem;
-  color: var(--c-outline);
-  opacity: 0.5;
-}
+#Layer_1 > text { display: none; }
 
-.placeholder-buttons {
-  display: flex;
-  gap: 1.2rem;
-}
+/* ── Color overrides — location.svg class map ───────────────────────────────
+   st0 = fill:none
+   st1 = outline stroke
+   st2 = fill + outline stroke (button fill, body fill)
+   st3 = bg fill + outline stroke (eye whites, window body)
+   st4 = bg fill + outline stroke
+   st5 = outline fill (pupils, text, dark accents)
+   st6 = fill color (pink accents)
+   ─────────────────────────────────────────────────────────────────────────── */
+#Layer_1 .st0 { fill: none; }
+#Layer_1 .st1 { fill: none; stroke: var(--c-outline); }
+#Layer_1 .st2 { fill: var(--c-fill); stroke: var(--c-outline); }
+#Layer_1 .st3 { fill: var(--c-bg); stroke: var(--c-outline); }
+#Layer_1 .st4 { fill: var(--c-bg); stroke: var(--c-outline); }
+#Layer_1 .st5 { fill: var(--c-outline); }
+#Layer_1 .st6 { fill: var(--c-fill); }
 
-.ph-btn {
-  background: var(--c-fill);
-  border: 3px solid var(--c-outline);
-  border-radius: 8px;
-  color: var(--c-outline);
-  font-family: monospace;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  padding: 0.6rem 1.8rem;
-  cursor: pointer;
+/* ── Pupil groups ─────────────────────────────────────────────────────────── */
+#location-pupil_x5F_R,
+#location-pupil_x5F_L {
+  transform-box: fill-box;
   transform-origin: 50% 50%;
-  transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.ph-btn:hover  { transform: scale(1.05); }
-.ph-btn:active { transform: scale(0.93); }
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+#location-allow_x5F_button_x5F_fill,
+#location-allow_x5F_button_x5F_body,
+#location-allow_x5F_txt,
+#location-block_x5F_txt { cursor: pointer; }
 
-.ph-btn--ghost {
-  background: var(--c-bg);
+#location-allow_x5F_button_x5F_fill,
+#location-allow_x5F_button_x5F_body,
+#location-allow_x5F_txt {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
 }
 
-.placeholder-sub {
-  font-size: 0.75rem;
-  color: var(--c-outline);
-  opacity: 0.6;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+#location-block_x5F_txt {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+/* ── Checkbox ─────────────────────────────────────────────────────────────── */
+#location-dontshow_x5F_checkbox_x5F_body,
+#location-dontshow_x5F_txt { cursor: pointer; }
+
+#location-dontshow_x5F_checkbox_x5F_body {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+#location-dontshow_x5F_checkmark {
+  display: none;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+#location-dontshow_x5F_checkbox_x5F_body.disabled,
+#location-dontshow_x5F_txt.disabled {
+  opacity: 0.35;
+  pointer-events: none;
+  cursor: default;
+}
+
+/* ── Lottie overlays ─────────────────────────────────────────────────────── */
+#lottie-ruka-tu,
+#lottie-ruka-dontshow {
+  display: none;
+  position: absolute;
+  overflow: hidden;
+  top: 0;
+  left: 0;
+}
+
+#lottie-ruka-tu *,
+#lottie-ruka-dontshow * {
+  pointer-events: none !important;
 }

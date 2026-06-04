@@ -320,7 +320,8 @@
     lottieAnim.addEventListener('complete', () => {
       playingOut = false;
       recentlySpammed = false;
-      // Lottie zostáva na poslednom frame (normálne ústa) — žiadny skok pri prechode na SVG
+      lottieEl.style.display = 'none';
+      if (mouth) mouth.style.display = '';
     }, { once: true });
   }
 

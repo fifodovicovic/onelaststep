@@ -4,18 +4,14 @@
   const svg     = document.getElementById('Layer_1');
   const wrapper = document.getElementById('window-wrapper');
 
-  // ── Eye tracking — getBBox approach ───────────────────────────────────────
-  // Each pupil moves to the closest point to the cursor within its own EYE shape.
-  // getBBox() reads actual DOM geometry — zero hardcoded coordinates.
-  //
-  // NOTE: ok.svg uses character-perspective L/R naming (opposite to viewer).
-  //   ok-pupil_x5F_R (x≈998) physically sits inside ok-eye_x5F_L (x≈990).
-  //   ok-pupil_x5F_L (x≈921) physically sits inside ok-eye_x5F_R (x≈894).
-  //   Pairs are matched by physical position, not by name.
+  // ── Eye tracking ──────────────────────────────────────────────────────────
+  // ok.svg uses character-perspective L/R naming (opposite to viewer).
+  // pupil_R (x≈998) sits inside eye_L socket; pupil_L (x≈921) inside eye_R socket.
 
   let eyes = null;
-
-  const EYE_INSET = 0.18;
+  const EYE_INSET   = 0.18;
+  const FOLLOW_DIST = 350;
+  let midX = 0, midY = 0;
 
   function makeEye(eyeEl, pupilEl, lerp) {
     pupilEl.setAttribute('transform', 'translate(0,0)');
@@ -26,7 +22,7 @@
     const ix   = ebb.width  * EYE_INSET;
     const iy   = ebb.height * EYE_INSET;
     return {
-      el: pupilEl, eyeEl, lerp, cx, cy,
+      el: pupilEl, lerp, cx, cy,
       minDX: ebb.x          + ix - cx,
       maxDX: ebb.x + ebb.width  - ix - cx,
       minDY: ebb.y          + iy - cy,
@@ -35,18 +31,13 @@
     };
   }
 
-  const FOLLOW_DIST = 350;
-  let midX = 0, midY = 0;
-
   function initEyes() {
     eyes = [
-      // pupil_R (right side, x≈998) → eye_L (right side socket, M989.6)
       makeEye(
         document.getElementById('ok-eye_x5F_L'),
         document.getElementById('ok-pupil_x5F_R'),
         0.13
       ),
-      // pupil_L (left side, x≈921) → eye_R (left side socket, M893.6)
       makeEye(
         document.getElementById('ok-eye_x5F_R'),
         document.getElementById('ok-pupil_x5F_L'),
@@ -66,30 +57,55 @@
     };
   }
 
-  let mouseX = 0, mouseY = 0;
-
-  // ── Parallax / floating ────────────────────────────────────────────────────
-  // PARALLAX_SCALE: 5.0 = exaggerated demo. Set to 1.0 for final.
+  // ── Parallax ──────────────────────────────────────────────────────────────
   const PARALLAX_SCALE = 1.0;
-  const P_LERP         = 0.04;   // very slow drift — the Apple smoothness
+  const P_LERP         = 0.04;
   const txtGroup       = document.getElementById('ok-press_x5F_ok_x5F_txt');
 
-  let pCurX = 0, pCurY = 0;
-  let pTargX = 0, pTargY = 0;
+  let pCurX = 0, pCurY = 0, pTargX = 0, pTargY = 0;
+  let mouseX = 0, mouseY = 0;
+  let clientMouseX = window.innerWidth / 2;
+
+  // ── OK button ─────────────────────────────────────────────────────────────
+  const btnBody = document.getElementById('ok-button_x5F_body');
+  const btnFill = document.getElementById('ok-button_x5F_fill');
+  const btnTxt  = document.getElementById('ok-ok_x5F_txt');
+  const btnEls  = [btnBody, btnFill, btnTxt].filter(Boolean);
+
+  let dodgesLeft       = 5 + Math.floor(Math.random() * 6);
+  let targetDx         = 0;
+  let curDx            = 0;
+  let lastDodgeMs      = 0;
+  let lastLaughMs      = 0;
+  let catchable        = false;
+  let clicked          = false;
+  let clicksOnCatchable = 0;
+
+  // Whole-box mode vars — deklarácia pred tick() (TDZ rule)
+  let wholeBoxMode = false;
+  let boxTargDx    = 0;
+  let boxFleeCurX  = 0;
+  const BOX_LERP   = 0.08;
+  const BTN_LERP   = 0.15;
+  const MAX_DX     = 220;
 
   document.addEventListener('mousemove', ev => {
     const p = toSVGCoords(ev.clientX, ev.clientY);
-    mouseX = p.x;
-    mouseY = p.y;
+    mouseX   = p.x;
+    mouseY   = p.y;
     clientMouseX = ev.clientX;
-    // Normalised [-1, 1] relative to viewport centre — for parallax
-    pTargX = (ev.clientX / window.innerWidth  - 0.5) * 2;
-    pTargY = (ev.clientY / window.innerHeight - 0.5) * 2;
+    pTargX   = (ev.clientX / window.innerWidth  - 0.5) * 2;
+    pTargY   = (ev.clientY / window.innerHeight - 0.5) * 2;
 
-    // Proximity flee: use btnBody outline + 5 px buffer on each side
-    if (dodgesLeft > 0 && btnBody) {
-      const br   = btnBody.getBoundingClientRect();
-      const near = ev.clientX >= br.left - 5 && ev.clientX <= br.right + 5;
+    if (dodgesLeft > 0) {
+      const hitEl = wholeBoxMode ? wrapper : btnBody;
+      if (!hitEl) return;
+      const br   = hitEl.getBoundingClientRect();
+      const near = wholeBoxMode
+        ? (ev.clientX >= br.left - 10 && ev.clientX <= br.right  + 10
+           && ev.clientY >= br.top  - 10 && ev.clientY <= br.bottom + 10)
+        : (ev.clientX >= br.left - 5  && ev.clientX <= br.right  + 5);
+
       if (near) {
         const now = Date.now();
         if (now - lastDodgeMs > 300) {
@@ -97,14 +113,41 @@
           dodgesLeft--;
           flee();
           if (dodgesLeft === 0) {
-            // Gave up — drift back to centre, then become catchable
-            setTimeout(() => { targetDx = 0; }, 500);
-            setTimeout(() => { catchable = true; }, 1200);
+            setTimeout(() => { if (wholeBoxMode) boxTargDx = 0; else targetDx = 0; }, 500);
+            setTimeout(() => { catchable = true; wholeBoxMode = false; }, 1200);
           }
         }
       }
     }
   });
+
+  function flee() {
+    const wr       = wrapper.getBoundingClientRect();
+    const windowCX = wr.left + wr.width / 2;
+    const dir      = clientMouseX > windowCX ? -1 : 1;
+    const fraction = 0.35 + Math.random() * 0.65;
+
+    if (wholeBoxMode) {
+      boxTargDx = dir * MAX_DX * fraction * 1.5;
+    } else {
+      targetDx = dir * MAX_DX * fraction;
+    }
+
+    if (Math.random() < 0.45) {
+      const now = Date.now();
+      if (now - lastLaughMs > 1400) { lastLaughMs = now; playLaugh(); }
+    }
+  }
+
+  function applyBtnTransform() {
+    curDx += (targetDx - curDx) * BTN_LERP;
+    const bpX = pCurX * 3.45 * PARALLAX_SCALE;
+    const bpY = pCurY * 2.3  * PARALLAX_SCALE;
+    const t   = `translate(${(curDx + bpX).toFixed(2)},${bpY.toFixed(2)})`;
+    if (btnBody) btnBody.setAttribute('transform', t);
+    if (btnFill) btnFill.setAttribute('transform', t);
+    if (btnTxt)  btnTxt.setAttribute('transform', t);
+  }
 
   function setTargets(mx, my) {
     if (!eyes) return;
@@ -124,73 +167,28 @@
     });
   }
 
-  // ── OK button — flees cursor, gives up after N dodges ────────────────────
-  const btnBody = document.getElementById('ok-button_x5F_body');
-  const btnFill = document.getElementById('ok-button_x5F_fill');
-  const btnTxt  = document.getElementById('ok-ok_x5F_txt');
-
-  let dodgesLeft  = 5 + Math.floor(Math.random() * 6);  // 5–10
-  let targetDx    = 0;
-  let curDx       = 0;
-  let lastDodgeMs = 0;
-  let lastLaughMs = 0;
-  let catchable   = false;
-  const BTN_LERP  = 0.15;
-  const MAX_DX    = 220;
-
-  let clientMouseX = window.innerWidth / 2;
-
-  function flee() {
-    // Direction based on WINDOW centre (stable reference, not button's moving centre)
-    const wr       = wrapper.getBoundingClientRect();
-    const windowCX = wr.left + wr.width / 2;
-    const dir      = clientMouseX > windowCX ? -1 : 1;
-    const fraction = 0.35 + Math.random() * 0.65;   // 35 – 100 % of MAX_DX
-    targetDx = dir * MAX_DX * fraction;
-
-    if (Math.random() < 0.45) {
-      const now = Date.now();
-      if (now - lastLaughMs > 1400) { lastLaughMs = now; playLaugh(); }
-    }
-  }
-
-  function applyBtnTransform() {
-    curDx += (targetDx - curDx) * BTN_LERP;
-    // Layer 3: button = 115% of text movement (3 * 1.15 = 3.45)
-    const bpX = pCurX * 3.45 * PARALLAX_SCALE;
-    const bpY = pCurY * 2.3  * PARALLAX_SCALE;
-    const t   = `translate(${(curDx + bpX).toFixed(2)},${bpY.toFixed(2)})`;
-    if (btnBody) btnBody.setAttribute('transform', t);
-    if (btnFill) btnFill.setAttribute('transform', t);
-    if (btnTxt)  btnTxt.setAttribute('transform', t);
-  }
-
-  // ── Animation loop — eyes + button lerp + parallax ───────────────────────
+  // ── Tick ──────────────────────────────────────────────────────────────────
   function tick() {
-    // Smooth lerp toward target (no spring-back)
     pCurX += (pTargX - pCurX) * P_LERP;
     pCurY += (pTargY - pCurY) * P_LERP;
 
-    // Layer 0: whole wrapper floats gently
-    const wpX = pCurX * 25 * PARALLAX_SCALE;
+    boxFleeCurX += (boxTargDx - boxFleeCurX) * BOX_LERP;
+    const wpX = pCurX * 25 * PARALLAX_SCALE + boxFleeCurX;
     const wpY = pCurY * 12 * PARALLAX_SCALE;
     wrapper.style.transform = `translate(${wpX.toFixed(2)}px,${wpY.toFixed(2)}px)`;
 
-    // Layer 2: text — very subtle, button will be 115% of this
     if (txtGroup) {
       const tpX = pCurX * 3 * PARALLAX_SCALE;
       const tpY = pCurY * 2 * PARALLAX_SCALE;
       txtGroup.setAttribute('transform', `translate(${tpX.toFixed(2)},${tpY.toFixed(2)})`);
     }
 
-    // Eye tracking — pure cursor tracking, no parallax on eye elements
     setTargets(mouseX, mouseY);
     if (eyes) {
       eyes.forEach(e => {
         e.curX += (e.targX - e.curX) * e.lerp;
         e.curY += (e.targY - e.curY) * e.lerp;
-        e.el.setAttribute('transform',
-          `translate(${e.curX.toFixed(2)},${e.curY.toFixed(2)})`);
+        e.el.setAttribute('transform', `translate(${e.curX.toFixed(2)},${e.curY.toFixed(2)})`);
       });
     }
 
@@ -201,8 +199,7 @@
   initEyes();
   tick();
 
-  const btnEls = [btnBody, btnFill, btnTxt].filter(Boolean);
-
+  // ── Button animation helper ───────────────────────────────────────────────
   function animBtn(keyframes, opts) {
     let lastAnim = null;
     btnEls.forEach(el => {
@@ -213,18 +210,17 @@
     return lastAnim;
   }
 
-  // ── Box click — squish whole window on every click ────────────────────────
+  // ── Body squish — wrapper, nie SVG root ───────────────────────────────────
   svg.addEventListener('click', () => {
-    svg.style.transformBox    = 'fill-box';
-    svg.style.transformOrigin = 'center center';
-    svg.animate(
-      [{ transform: 'scale(1)' }, { transform: 'scale(0.988)', offset: 0.35 }, { transform: 'scale(1)' }],
-      { duration: 200, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+    wrapper.animate(
+      [{ transform: `translate(${(pCurX * 25 * PARALLAX_SCALE + boxFleeCurX).toFixed(2)}px,${(pCurY * 12 * PARALLAX_SCALE).toFixed(2)}px) scale(1)` },
+       { transform: `translate(${(pCurX * 25 * PARALLAX_SCALE + boxFleeCurX).toFixed(2)}px,${(pCurY * 12 * PARALLAX_SCALE).toFixed(2)}px) scale(0.988)`, offset: 0.35 },
+       { transform: `translate(${(pCurX * 25 * PARALLAX_SCALE + boxFleeCurX).toFixed(2)}px,${(pCurY * 12 * PARALLAX_SCALE).toFixed(2)}px) scale(1)` }],
+      { duration: 200, easing: 'cubic-bezier(0.34,1.56,0.64,1)' }
     );
   });
 
-  // ── Button hover + click — only once catchable ───────────────────────────
-  let clicked = false;
+  // ── Button hover + click — 2-click state machine ─────────────────────────
   [btnBody, btnFill].forEach(el => {
     if (!el) return;
 
@@ -238,15 +234,43 @@
       animBtn([{ transform: 'scale(1)' }],
         { duration: 180, fill: 'forwards', easing: 'ease-out' });
     });
+
     el.addEventListener('click', ev => {
       if (!catchable || clicked) return;
-      clicked = true;
       ev.stopPropagation();
-      const anim = animBtn(
-        [{ transform: 'scale(0.96)' }, { transform: 'scale(0.82)', offset: 0.4 }, { transform: 'scale(1.08)', offset: 0.7 }, { transform: 'scale(1)' }],
-        { duration: 400, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
-      );
-      anim.addEventListener('finish', () => window.OLS.navigate('ok'));
+
+      if (clicksOnCatchable === 0) {
+        // Prvý klik — iba jiggle
+        clicksOnCatchable = 1;
+        animBtn(
+          [{ transform: 'scale(1)' }, { transform: 'scale(0.92)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }],
+          { duration: 300, easing: 'cubic-bezier(0.34,1.56,0.64,1)' }
+        );
+        return;
+      }
+
+      // Druhý klik — rozhodnutie 50/50
+      clicked = true;
+      if (Math.random() < 0.5) {
+        // Koniec scény
+        const anim = animBtn(
+          [{ transform: 'scale(1)' }, { transform: 'scale(0.82)', offset: 0.4 }, { transform: 'scale(1.08)', offset: 0.7 }, { transform: 'scale(1)' }],
+          { duration: 400, easing: 'cubic-bezier(0.34,1.56,0.64,1)' }
+        );
+        anim.addEventListener('finish', () => window.OLS.navigate('ok'));
+      } else {
+        // Reštart — nová dodge sekvencia
+        clicked           = false;
+        catchable         = false;
+        clicksOnCatchable = 0;
+        targetDx          = 0;
+        boxTargDx         = 0;
+        dodgesLeft        = 5 + Math.floor(Math.random() * 6);
+        lastDodgeMs       = 0;
+        wholeBoxMode      = Math.random() < 0.20;
+        // Malý reset animácie tlačidla
+        animBtn([{ transform: 'scale(1)' }], { duration: 200, fill: 'forwards' });
+      }
     });
   });
 

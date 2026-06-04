@@ -9,18 +9,15 @@
 
 {% block content %}
 <div class="scene-stage">
-  <div class="window-wrapper placeholder-window" id="window-wrapper">
-    <div class="placeholder-label">LOCATION PERMISSION</div>
-    <div class="placeholder-note">Asset not yet available — placeholder</div>
-    <div class="placeholder-buttons">
-      <button class="ph-btn" id="loc-allow">ALLOW</button>
-      <button class="ph-btn ph-btn--ghost" id="loc-block">BLOCK</button>
-    </div>
-    <div class="placeholder-sub" id="loc-dontshow">DON'T SHOW THIS AGAIN</div>
+  <div class="window-wrapper" id="window-wrapper">
+    {{ svg | safe }}
+    <div id="lottie-ruka-tu" class="lottie-overlay"></div>
+    <div id="lottie-ruka-dontshow" class="lottie-overlay"></div>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 <script src="{{ url_for('static', filename='js/location.js') }}"></script>
 {% endblock %}

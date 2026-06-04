@@ -15,6 +15,7 @@ VIEWBOXES = {
     'cookies':    '560 378 775 322',
     'captcha':    '608 425 695 220',
     'update':     '608 315 695 428',
+    'location':   '565 320 820 415',
 }
 
 # ── FARBY — zmeň tu, zmení sa všade (CSS aj cursor SVG) ──
@@ -75,7 +76,7 @@ def cursor_mys():
     return resp
 
 
-LOOP_SCENES = ['loading', 'cookies', 'newsletter', 'captcha', 'update']
+LOOP_SCENES = ['loading', 'dead', 'ok', 'newsletter', 'cookies', 'captcha', 'update', 'location']
 
 @app.route('/')
 def index():
@@ -140,7 +141,9 @@ def scene_update():
 
 @app.route('/scene/location')
 def scene_location():
-    return render_template('scenes/location.html')
+    svg = load_svg('location.svg', viewbox=VIEWBOXES['location'])
+    svg = inject_colors(svg, COLORS)
+    return render_template('scenes/location.html', svg=svg)
 
 
 if __name__ == '__main__':
