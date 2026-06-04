@@ -33,7 +33,7 @@
       makeEye(
         document.getElementById('update-eye_x5F_R'),
         document.getElementById('update-pupil_x5F_R'),
-        0.13
+        0.10   // rovnaký lerp = oči sa hýbu ako jedno
       ),
       makeEye(
         document.getElementById('update-eye_x5F_L'),
@@ -104,11 +104,19 @@
     const angle = Math.atan2(dy, dx);
     const ux    = Math.cos(angle) * t;
     const uy    = Math.sin(angle) * t;
+
+    // Zdieľaný offset — obe zreničky sa hýbu o rovnaké SVG jednotky,
+    // nie o rovnaké % svojho vlastného rozsahu (to by ich oddeľovalo).
+    const sharedMaxDX = Math.min(...eyes.map(e => e.maxDX));
+    const sharedMinDX = Math.min(...eyes.map(e => Math.abs(e.minDX)));
+    const sharedMaxDY = Math.min(...eyes.map(e => e.maxDY));
+    const sharedMinDY = Math.min(...eyes.map(e => Math.abs(e.minDY)));
+    const rawX = ux * (ux >= 0 ? sharedMaxDX : sharedMinDX);
+    const rawY = uy * (uy >= 0 ? sharedMaxDY : sharedMinDY);
+
     eyes.forEach(e => {
-      const tx = ux * (ux >= 0 ? e.maxDX : -e.minDX);
-      const ty = uy * (uy >= 0 ? e.maxDY : -e.minDY);
-      e.targX  = Math.max(e.minDX, Math.min(e.maxDX, tx));
-      e.targY  = Math.max(e.minDY, Math.min(e.maxDY, ty));
+      e.targX = Math.max(e.minDX, Math.min(e.maxDX, rawX));
+      e.targY = Math.max(e.minDY, Math.min(e.maxDY, rawY));
     });
   }
 
@@ -182,15 +190,19 @@
     });
   }
 
-  // ── ruka_tu idle ──────────────────────────────────────────────────────────
-  const VB_UPDATE   = { x: 608, y: 315, w: 695 };
-  const rukaTuEl    = document.getElementById('lottie-ruka-tu');
-  let rukaTuReady   = false;
-  let rukaTuShowing = false;
-  let idleTimer     = null;
+  // ── ruka_tu idle — in/hold/out ────────────────────────────────────────────
+  const VB_UPDATE     = { x: 608, y: 315, w: 695 };
+  const RUKA_MID      = 50;   // frame kde je ruka plne dnu (odhadnutý stred 8–100)
+  const RUKA_HOLD_MS  = 2800; // ako dlho drží polohu pred odchodom
+
+  const rukaTuEl  = document.getElementById('lottie-ruka-tu');
+  let rukaTuReady = false;
+  let rukaTuPhase = 'hidden'; // 'hidden' | 'entering' | 'holding' | 'exiting'
+  let rukaTuHoldTimer = null;
+  let idleTimer   = null;
 
   const lottieRukaTu = lottie.loadAnimation({
-    container: rukaTuEl, renderer: 'svg', loop: true, autoplay: false,
+    container: rukaTuEl, renderer: 'svg', loop: false, autoplay: false,
     path: '/anim/ruka_tu.json',
   });
 
@@ -199,34 +211,61 @@
     rukaTuReady = true;
   });
 
+  lottieRukaTu.addEventListener('complete', () => {
+    if (rukaTuPhase === 'entering') {
+      // Ruka je dnu — zastav a drž
+      rukaTuPhase = 'holding';
+      lottieRukaTu.goToAndStop(RUKA_MID, true);
+      rukaTuHoldTimer = setTimeout(() => {
+        if (rukaTuPhase === 'holding') startRukaExit();
+      }, RUKA_HOLD_MS);
+    } else if (rukaTuPhase === 'exiting') {
+      rukaTuPhase = 'hidden';
+      rukaTuEl.style.display = 'none';
+    }
+  });
+
   function positionLottie() {
     if (!rukaTuEl) return;
     const scale = wrapper.offsetWidth / VB_UPDATE.w;
     rukaTuEl.style.width  = (1920 * scale) + 'px';
     rukaTuEl.style.height = (1080 * scale) + 'px';
     rukaTuEl.style.left   = (-VB_UPDATE.x * scale) + 'px';
-    rukaTuEl.style.top    = (-VB_UPDATE.y * scale) + 'px';
+    rukaTuEl.style.top    = (-VB_UPDATE.y * scale + 30) + 'px'; // +30px nižšie
   }
 
   window.addEventListener('resize', positionLottie);
 
+  function startRukaExit() {
+    clearTimeout(rukaTuHoldTimer);
+    rukaTuPhase = 'exiting';
+    lottieRukaTu.playSegments([RUKA_MID, 100], true);
+  }
+
   function showRukaTu() {
-    if (!rukaTuReady) return;
-    rukaTuShowing = true;
+    if (!rukaTuReady || rukaTuPhase !== 'hidden') return;
+    rukaTuPhase = 'entering';
     rukaTuEl.style.display = 'block';
-    lottieRukaTu.goToAndPlay(8, true);
+    lottieRukaTu.playSegments([0, RUKA_MID], true);
   }
 
   function hideRukaTu() {
-    if (!rukaTuShowing) return;
-    rukaTuShowing = false;
-    rukaTuEl.style.display = 'none';
-    lottieRukaTu.stop();
+    clearTimeout(rukaTuHoldTimer);
+    if (rukaTuPhase === 'hidden') return;
+    if (rukaTuPhase === 'holding') {
+      startRukaExit();
+    } else if (rukaTuPhase === 'entering') {
+      // Prerušenie počas vstupu — skoč rovno na exit
+      rukaTuPhase = 'hidden';
+      rukaTuEl.style.display = 'none';
+      lottieRukaTu.stop();
+    }
+    // 'exiting' — nechaj dohraný
   }
 
   function resetIdleTimer() {
     clearTimeout(idleTimer);
-    if (rukaTuShowing) hideRukaTu();
+    hideRukaTu();
     idleTimer = setTimeout(showRukaTu, 4000);
   }
 
@@ -234,7 +273,10 @@
   let nowHovered = false;
 
   nowEls.forEach(el => {
-    el.addEventListener('mouseenter', () => { nowHovered = true;  hoverScale(nowEls, 1.05); resetIdleTimer(); });
+    el.addEventListener('mouseenter', () => {
+      if (nowHovered) return; // už sme dnu — nespúšťaj znova
+      nowHovered = true; hoverScale(nowEls, 1.05); resetIdleTimer();
+    });
     el.addEventListener('mouseleave', ev => {
       if (nowEls.some(e => e === ev.relatedTarget || e.contains(ev.relatedTarget))) return;
       nowHovered = false; hoverScale(nowEls, 1.0);
@@ -250,7 +292,10 @@
   let laterHovered = false;
 
   laterEls.forEach(el => {
-    el.addEventListener('mouseenter', () => { laterHovered = true;  hoverScale(laterEls, 1.05); resetIdleTimer(); });
+    el.addEventListener('mouseenter', () => {
+      if (laterHovered) return;
+      laterHovered = true; hoverScale(laterEls, 1.05); resetIdleTimer();
+    });
     el.addEventListener('mouseleave', ev => {
       if (laterEls.some(e => e === ev.relatedTarget || e.contains(ev.relatedTarget))) return;
       laterHovered = false; hoverScale(laterEls, 1.0);

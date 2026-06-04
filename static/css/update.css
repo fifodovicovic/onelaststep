@@ -64,3 +64,14 @@
   transform-box: fill-box;
   transform-origin: 50% 50%;
 }
+
+/* LATER button má fill:none — klikanie by chytilo len outline.
+   fill:transparent zachová pointer-events po celej ploche.
+   Zvýšená špecifickosť (2 IDs) aby prebila #Layer_1 .st1 (ID+class). */
+#Layer_1 #update-later_x5F_button_x5F_body {
+  fill: transparent;
+}
+/* NOW button body je nad fill-om — transparent aby neblokoval events na fill */
+#Layer_1 #update-now_x5F_button_x5F_body {
+  fill: transparent;
+}
