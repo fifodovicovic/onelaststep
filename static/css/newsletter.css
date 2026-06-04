@@ -64,3 +64,5 @@
   pointer-events: none;
   overflow: hidden;
 }
+
+#Layer_1 #newsletter-body { fill: var(--c-bg); }

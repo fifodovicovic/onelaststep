@@ -312,7 +312,6 @@
         setTimeout(() => { t.hoverScaleTarget = t.isHovered ? 1.06 : 1.0; }, 160);
         handleToggle(t);
         trackSpam();
-        resetIdleTimer();
       });
     });
   });
@@ -357,62 +356,8 @@
         );
       });
       trackSpam();
-      resetIdleTimer();
       setTimeout(() => window.OLS.navigate('newsletter'), 300);
     });
   });
-
-  // ── ruka_tu idle — ukazuje na Continue button ─────────────────────────────
-  const rukaTuEl    = document.getElementById('lottie-ruka-tu');
-  let rukaTuReady   = false;
-  let rukaTuShowing = false;
-  let idleTimer     = null;
-
-  const lottieRukaTu = lottie.loadAnimation({
-    container: rukaTuEl, renderer: 'svg', loop: true, autoplay: false,
-    path: '/anim/ruka_tu.json',
-  });
-
-  lottieRukaTu.addEventListener('DOMLoaded', () => {
-    positionRukaTu();
-    rukaTuReady = true;
-  });
-
-  function positionRukaTu() {
-    if (!rukaTuEl) return;
-    const scale = wrapper.offsetWidth / HAND_VB.w;
-    rukaTuEl.style.width  = (1920 * scale) + 'px';
-    rukaTuEl.style.height = (1080 * scale) + 'px';
-    rukaTuEl.style.left   = (-HAND_VB.x * scale) + 'px';
-    rukaTuEl.style.top    = (-HAND_VB.y * scale) + 'px';
-  }
-
-  window.addEventListener('resize', positionRukaTu);
-
-  function bothTogglesOn() {
-    return TOGGLES.every(t => t.isOn);
-  }
-
-  function showRukaTu() {
-    if (!rukaTuReady || !bothTogglesOn()) return;
-    rukaTuShowing = true;
-    rukaTuEl.style.display = 'block';
-    lottieRukaTu.goToAndPlay(8, true);
-  }
-
-  function hideRukaTu() {
-    if (!rukaTuShowing) return;
-    rukaTuShowing = false;
-    rukaTuEl.style.display = 'none';
-    lottieRukaTu.stop();
-  }
-
-  function resetIdleTimer() {
-    clearTimeout(idleTimer);
-    if (rukaTuShowing) hideRukaTu();
-    idleTimer = setTimeout(showRukaTu, 5000);
-  }
-
-  resetIdleTimer();
 
 })();

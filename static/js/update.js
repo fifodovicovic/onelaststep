@@ -33,7 +33,7 @@
       makeEye(
         document.getElementById('update-eye_x5F_R'),
         document.getElementById('update-pupil_x5F_R'),
-        0.10   // rovnaký lerp = oči sa hýbu ako jedno
+        0.13
       ),
       makeEye(
         document.getElementById('update-eye_x5F_L'),
@@ -105,18 +105,11 @@
     const ux    = Math.cos(angle) * t;
     const uy    = Math.sin(angle) * t;
 
-    // Zdieľaný offset — obe zreničky sa hýbu o rovnaké SVG jednotky,
-    // nie o rovnaké % svojho vlastného rozsahu (to by ich oddeľovalo).
-    const sharedMaxDX = Math.min(...eyes.map(e => e.maxDX));
-    const sharedMinDX = Math.min(...eyes.map(e => Math.abs(e.minDX)));
-    const sharedMaxDY = Math.min(...eyes.map(e => e.maxDY));
-    const sharedMinDY = Math.min(...eyes.map(e => Math.abs(e.minDY)));
-    const rawX = ux * (ux >= 0 ? sharedMaxDX : sharedMinDX);
-    const rawY = uy * (uy >= 0 ? sharedMaxDY : sharedMinDY);
-
     eyes.forEach(e => {
-      e.targX = Math.max(e.minDX, Math.min(e.maxDX, rawX));
-      e.targY = Math.max(e.minDY, Math.min(e.maxDY, rawY));
+      const tx = ux * (ux >= 0 ? e.maxDX : -e.minDX);
+      const ty = uy * (uy >= 0 ? e.maxDY : -e.minDY);
+      e.targX  = Math.max(e.minDX, Math.min(e.maxDX, tx));
+      e.targY  = Math.max(e.minDY, Math.min(e.maxDY, ty));
     });
   }
 
@@ -304,7 +297,13 @@
       ev.stopPropagation();
       hideRukaTu();
       triggerEyeRoll();
-      pressButton(laterEls, laterHovered, () => window.OLS.navigate('update'));
+      pressButton(laterEls, laterHovered, () => {
+        // Later nesmie ísť na loading — loading = restart
+        const next = window.OLS.nextScene('update');
+        window.location.href = next === '/scene/loading'
+          ? window.OLS.nextScene('loading')
+          : next;
+      });
     });
   });
 

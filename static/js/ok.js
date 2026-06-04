@@ -72,22 +72,17 @@
   const btnTxt  = document.getElementById('ok-ok_x5F_txt');
   const btnEls  = [btnBody, btnFill, btnTxt].filter(Boolean);
 
-  let dodgesLeft       = 5 + Math.floor(Math.random() * 6);
-  let targetDx         = 0;
-  let curDx            = 0;
-  let lastDodgeMs      = 0;
-  let lastLaughMs      = 0;
-  let catchable        = false;
-  let clicked          = false;
+  let dodgesLeft        = 5 + Math.floor(Math.random() * 6);
+  let targetDx          = 0;
+  let curDx             = 0;
+  let lastDodgeMs       = 0;
+  let lastLaughMs       = 0;
+  let catchable         = false;
+  let clicked           = false;
   let clicksOnCatchable = 0;
 
-  // Whole-box mode vars — deklarácia pred tick() (TDZ rule)
-  let wholeBoxMode = false;
-  let boxTargDx    = 0;
-  let boxFleeCurX  = 0;
-  const BOX_LERP   = 0.08;
-  const BTN_LERP   = 0.15;
-  const MAX_DX     = 220;
+  const BTN_LERP = 0.15;
+  const MAX_DX   = 220;
 
   document.addEventListener('mousemove', ev => {
     const p = toSVGCoords(ev.clientX, ev.clientY);
@@ -97,15 +92,9 @@
     pTargX   = (ev.clientX / window.innerWidth  - 0.5) * 2;
     pTargY   = (ev.clientY / window.innerHeight - 0.5) * 2;
 
-    if (dodgesLeft > 0) {
-      const hitEl = wholeBoxMode ? wrapper : btnBody;
-      if (!hitEl) return;
-      const br   = hitEl.getBoundingClientRect();
-      const near = wholeBoxMode
-        ? (ev.clientX >= br.left - 10 && ev.clientX <= br.right  + 10
-           && ev.clientY >= br.top  - 10 && ev.clientY <= br.bottom + 10)
-        : (ev.clientX >= br.left - 5  && ev.clientX <= br.right  + 5);
-
+    if (dodgesLeft > 0 && btnBody) {
+      const br   = btnBody.getBoundingClientRect();
+      const near = ev.clientX >= br.left - 5 && ev.clientX <= br.right + 5;
       if (near) {
         const now = Date.now();
         if (now - lastDodgeMs > 300) {
@@ -113,8 +102,8 @@
           dodgesLeft--;
           flee();
           if (dodgesLeft === 0) {
-            setTimeout(() => { if (wholeBoxMode) boxTargDx = 0; else targetDx = 0; }, 500);
-            setTimeout(() => { catchable = true; wholeBoxMode = false; }, 1200);
+            setTimeout(() => { targetDx = 0; }, 500);
+            setTimeout(() => { catchable = true; }, 1200);
           }
         }
       }
@@ -126,13 +115,7 @@
     const windowCX = wr.left + wr.width / 2;
     const dir      = clientMouseX > windowCX ? -1 : 1;
     const fraction = 0.35 + Math.random() * 0.65;
-
-    if (wholeBoxMode) {
-      boxTargDx = dir * MAX_DX * fraction * 1.5;
-    } else {
-      targetDx = dir * MAX_DX * fraction;
-    }
-
+    targetDx = dir * MAX_DX * fraction;
     if (Math.random() < 0.45) {
       const now = Date.now();
       if (now - lastLaughMs > 1400) { lastLaughMs = now; playLaugh(); }
@@ -172,8 +155,7 @@
     pCurX += (pTargX - pCurX) * P_LERP;
     pCurY += (pTargY - pCurY) * P_LERP;
 
-    boxFleeCurX += (boxTargDx - boxFleeCurX) * BOX_LERP;
-    const wpX = pCurX * 25 * PARALLAX_SCALE + boxFleeCurX;
+    const wpX = pCurX * 25 * PARALLAX_SCALE;
     const wpY = pCurY * 12 * PARALLAX_SCALE;
     wrapper.style.transform = `translate(${wpX.toFixed(2)}px,${wpY.toFixed(2)}px)`;
 
@@ -212,27 +194,32 @@
 
   // ── Body squish — wrapper, nie SVG root ───────────────────────────────────
   svg.addEventListener('click', () => {
+    const wx = (pCurX * 25 * PARALLAX_SCALE).toFixed(2);
+    const wy = (pCurY * 12 * PARALLAX_SCALE).toFixed(2);
     wrapper.animate(
-      [{ transform: `translate(${(pCurX * 25 * PARALLAX_SCALE + boxFleeCurX).toFixed(2)}px,${(pCurY * 12 * PARALLAX_SCALE).toFixed(2)}px) scale(1)` },
-       { transform: `translate(${(pCurX * 25 * PARALLAX_SCALE + boxFleeCurX).toFixed(2)}px,${(pCurY * 12 * PARALLAX_SCALE).toFixed(2)}px) scale(0.988)`, offset: 0.35 },
-       { transform: `translate(${(pCurX * 25 * PARALLAX_SCALE + boxFleeCurX).toFixed(2)}px,${(pCurY * 12 * PARALLAX_SCALE).toFixed(2)}px) scale(1)` }],
+      [{ transform: `translate(${wx}px,${wy}px) scale(1)` },
+       { transform: `translate(${wx}px,${wy}px) scale(0.988)`, offset: 0.35 },
+       { transform: `translate(${wx}px,${wy}px) scale(1)` }],
       { duration: 200, easing: 'cubic-bezier(0.34,1.56,0.64,1)' }
     );
   });
 
   // ── Button hover + click — 2-click state machine ─────────────────────────
-  [btnBody, btnFill].forEach(el => {
-    if (!el) return;
+  let groupHovered = false;
 
+  btnEls.forEach(el => {
     el.addEventListener('mouseenter', () => {
-      if (!catchable) return;
-      animBtn([{ transform: 'scale(0.96)' }],
-        { duration: 140, fill: 'forwards', easing: 'ease-out' });
+      if (!catchable || groupHovered) return;
+      groupHovered = true;
+      animBtn([{ transform: 'scale(1.05)' }],
+        { duration: 160, fill: 'forwards', easing: 'cubic-bezier(0.25,0.46,0.45,0.94)' });
     });
-    el.addEventListener('mouseleave', () => {
+    el.addEventListener('mouseleave', ev => {
       if (!catchable) return;
+      if (btnEls.some(e => e === ev.relatedTarget || e.contains(ev.relatedTarget))) return;
+      groupHovered = false;
       animBtn([{ transform: 'scale(1)' }],
-        { duration: 180, fill: 'forwards', easing: 'ease-out' });
+        { duration: 180, fill: 'forwards', easing: 'cubic-bezier(0.25,0.46,0.45,0.94)' });
     });
 
     el.addEventListener('click', ev => {
@@ -240,35 +227,30 @@
       ev.stopPropagation();
 
       if (clicksOnCatchable === 0) {
-        // Prvý klik — iba jiggle
         clicksOnCatchable = 1;
+        const base = groupHovered ? 1.05 : 1.0;
         animBtn(
-          [{ transform: 'scale(1)' }, { transform: 'scale(0.92)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }],
+          [{ transform: `scale(${base})` }, { transform: 'scale(0.92)' }, { transform: 'scale(1.04)' }, { transform: `scale(${base})` }],
           { duration: 300, easing: 'cubic-bezier(0.34,1.56,0.64,1)' }
         );
         return;
       }
 
-      // Druhý klik — rozhodnutie 50/50
       clicked = true;
       if (Math.random() < 0.5) {
-        // Koniec scény
         const anim = animBtn(
           [{ transform: 'scale(1)' }, { transform: 'scale(0.82)', offset: 0.4 }, { transform: 'scale(1.08)', offset: 0.7 }, { transform: 'scale(1)' }],
           { duration: 400, easing: 'cubic-bezier(0.34,1.56,0.64,1)' }
         );
         anim.addEventListener('finish', () => window.OLS.navigate('ok'));
       } else {
-        // Reštart — nová dodge sekvencia
         clicked           = false;
         catchable         = false;
+        groupHovered      = false;
         clicksOnCatchable = 0;
         targetDx          = 0;
-        boxTargDx         = 0;
         dodgesLeft        = 5 + Math.floor(Math.random() * 6);
         lastDodgeMs       = 0;
-        wholeBoxMode      = Math.random() < 0.20;
-        // Malý reset animácie tlačidla
         animBtn([{ transform: 'scale(1)' }], { duration: 200, fill: 'forwards' });
       }
     });

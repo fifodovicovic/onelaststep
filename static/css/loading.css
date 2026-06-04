@@ -24,3 +24,5 @@
 #loading .st3 { fill: var(--c-bg); stroke: var(--c-outline); }
 #loading .st4 { fill: var(--c-fill); }
 #loading .st5 { fill: var(--c-outline); }
+
+#loading #loading-body { fill: var(--c-bg); }

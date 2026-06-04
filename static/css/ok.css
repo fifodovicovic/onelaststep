@@ -32,3 +32,5 @@
 /* OK button elements — cursor changes once button is catchable */
 #ok-button_x5F_body,
 #ok-button_x5F_fill { cursor: pointer; }
+
+#Layer_1 #ok-body { fill: var(--c-bg); }

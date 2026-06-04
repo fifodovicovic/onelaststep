@@ -82,3 +82,5 @@
 #lottie-deny-sad * {
   pointer-events: none !important;
 }
+
+#Layer_1 #cookies-body { fill: var(--c-bg); }

@@ -2,7 +2,7 @@
   'use strict';
 
   // ── Scenes that participate in the main loop ──────────────────────────────
-  const LOOP_SCENES = ['loading', 'dead', 'ok', 'newsletter', 'cookies', 'captcha', 'update', 'location'];
+  const LOOP_SCENES = ['loading', 'dead', 'ok', 'newsletter', 'cookies', 'captcha', 'update'];
 
   // ── DEBUG: set true for sequential 1–8 order, false for random ───────────
   const DEBUG_SEQUENTIAL = true;

@@ -305,34 +305,47 @@
     path: '/anim/mad_face.json',
   });
 
-  // mad_face.json: 50 frames @30fps. Frame 30 = 1s = peak angry.
-  const PEAK_FRAME = 30;
-  let playingOut   = false;
-  let pendingOut   = false;  // out animation čaká na dokončenie in-animácie
+  // mad_face.json: 50 frames @30fps. Frame 30 = peak angry. IN=0→30, OUT=30→50.
+  const PEAK_FRAME  = 30;
+  const OUT_FRAME   = 50;   // hardcoded — totalFrames nie je spoľahlivé po playSegments
+  let playingOut    = false;
+  let pendingOut    = false;
+  let inDone        = false; // true keď IN animácia dobehla a stojí na PEAK
 
   let lottieReady = false;
   lottieAnim.addEventListener('DOMLoaded', () => { positionLottie(); lottieReady = true; });
 
   function startOutAnimation() {
+    if (playingOut) return;
     pendingOut = false;
     playingOut = true;
-    lottieAnim.playSegments([PEAK_FRAME, lottieAnim.totalFrames], true);
+    lottieAnim.playSegments([PEAK_FRAME, OUT_FRAME], true);
     lottieAnim.addEventListener('complete', () => {
       playingOut = false;
+      inDone = false;
       recentlySpammed = false;
-      lottieEl.style.display = 'none';
+      // Mouth sa ukáže pod lottie — žiaden skok
       if (mouth) mouth.style.display = '';
+      // Lottie rýchlo sfaduje, potom schová
+      lottieEl.style.transition = 'opacity 110ms ease-out';
+      lottieEl.style.opacity = '0';
+      setTimeout(() => {
+        lottieEl.style.display = 'none';
+        lottieEl.style.opacity = '1';
+        lottieEl.style.transition = '';
+      }, 120);
     }, { once: true });
   }
 
-  lottieAnim.addEventListener('complete', () => {
-    if (playingOut) return;
-    if (lottieEl.style.display === 'block') {
+  function playInAnimation() {
+    lottieAnim.playSegments([0, PEAK_FRAME], true);
+    lottieAnim.addEventListener('complete', () => {
       lottieAnim.goToAndStop(PEAK_FRAME, true);
-      // In-animácia dokončená — ak čaká pendingOut, spusti hneď
+      inDone = true;
       if (pendingOut) startOutAnimation();
-    }
-  });
+    }, { once: true });
+  }
+
   window.addEventListener('resize', positionLottie);
 
   // ── Invisible hit rect over loading bar ───────────────────────────────────
@@ -369,10 +382,12 @@
 
   function showAngryFace() {
     if (mouth) mouth.style.display = 'none';
+    lottieEl.style.transition = '';
+    lottieEl.style.opacity = '1';
     lottieEl.style.display = 'block';
-    // Play only 0 → PEAK_FRAME so it arrives smoothly at peak and holds
-    if (lottieReady) lottieAnim.playSegments([0, PEAK_FRAME], true);
-    else lottieAnim.addEventListener('DOMLoaded', () => lottieAnim.playSegments([0, PEAK_FRAME], true), { once: true });
+    inDone = false;
+    if (lottieReady) playInAnimation();
+    else lottieAnim.addEventListener('DOMLoaded', playInAnimation, { once: true });
   }
 
   hitRect.addEventListener('click', () => {
@@ -414,16 +429,15 @@
       playingOut = false;
       pendingOut = false;
       lottieAnim.goToAndStop(PEAK_FRAME, true);
+      inDone = true;
     }
 
-    // Spusti out-animáciu 1000ms po poslednom kliku
+    // Spusti out-animáciu FREEZE_DURATION ms po poslednom kliku
     clearTimeout(angryHideTimer);
     angryHideTimer = setTimeout(() => {
       angryHideTimer = null;
       if (!lottieEl || lottieEl.style.display !== 'block') return;
-      // Ak je in-animácia hotová (stojí na PEAK_FRAME) — spusti out hneď
-      // Inak nastav flag — spustí sa v complete handleri po dokončení in-animácie
-      if (lottieAnim.isPaused && !playingOut) {
+      if (inDone && !playingOut) {
         startOutAnimation();
       } else {
         pendingOut = true;

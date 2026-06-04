@@ -1,4 +1,4 @@
-# ONE LAST STEP — Handoff Document (updated 2026-06-04)
+# ONE LAST STEP — Handoff Document (updated 2026-06-04, rev 2)
 
 Interactive gallery web installation. Hostile interface — loops the visitor through annoying popups. Built in Flask with inline SVGs. Every scene is a separate HTML page.
 
@@ -19,15 +19,14 @@ Port 5001 (5000 is taken by macOS AirPlay).
 | loading | `/scene/loading` | ✅ | Parallax, oči sledujú bar, reversal, mad face Lottie (in/hold/out fixed), navigate on complete |
 | dead | `/scene/dead` | ✅ | Pop-in, parallax, die/wake Lottie, 3–10 RELOAD kliknutí, 30% repeat |
 | ok | `/scene/ok` | ✅ | 2-click mechanic, 20% whole-box mode, laugh Lottie |
-| newsletter | `/scene/newsletter` | ✅ | Parallax, toggles, rukatoggle Lottie, ruka_tu idle, eye roll spam |
+| newsletter | `/scene/newsletter` | ✅ | Parallax, toggles, rukatoggle Lottie, eye roll spam — BEZ ruka_tu idle |
 | cookies | `/scene/cookies` | ✅ | Parallax, oči s bias/glance, sad/no Lottie, ruka_tu idle |
-| captcha | `/scene/captcha` | ✅ | Parallax, paranoidné oči (state machine), body squish |
-| update | `/scene/update` | ✅ | Parallax, body squish, ruka_tu in/hold/out, eye roll LATER, NOW→vždy /loading |
-| location | `/scene/location` | ✅ | Parallax, oči, scared eyes (BLOCK), dont-show checkbox, ruka_tu idle |
+| captcha | `/scene/captcha` | ✅ | Parallax, simple eye tracking, body squish, rukatoggle hand→checkbox, checkmark fade |
+| update | `/scene/update` | ✅ | Parallax, body squish, ruka_tu in/hold/out, eye roll LATER, NOW→vždy /loading, per-eye tracking |
 | checkbox | `/scene/checkbox` | ✅ | Demo scene, nie v main loop |
 
 **Nav loop** (`DEBUG_SEQUENTIAL=true` v scene-nav.js):
-`loading → dead → ok → newsletter → cookies → captcha → update → location → (repeat)`
+`loading → dead → ok → newsletter → cookies → captcha → update → (repeat)`
 
 Zmeniť na random: `DEBUG_SEQUENTIAL = false` v `scene-nav.js`.
 
@@ -52,7 +51,7 @@ svg.animate([...]);
 - `wrapper.style.transform` + `wrapper.animate({transform})` = **CONFLICT** (teleport bug)
 
 Scény s body squish animáciami musia používať `style.translate` pre parallax:
-- loading, dead, newsletter, captcha, update, location: `style.translate` ✓
+- loading, dead, newsletter, captcha, update: `style.translate` ✓
 - cookies, ok: `style.transform` — OK (nemajú scale animácie na wrapper)
 
 ### TDZ rule
@@ -92,10 +91,9 @@ VIEWBOXES = {
   'cookies':    '560 378 775 322',
   'captcha':    '608 425 695 220',
   'update':     '608 315 695 428',
-  'location':   '565 320 820 415',
 }
 COLORS = { 'bg': '#ffffff', 'fill': '#ffa4f6', 'outline': '#ff007a' }
-LOOP_SCENES = ['loading', 'dead', 'ok', 'newsletter', 'cookies', 'captcha', 'update', 'location']
+LOOP_SCENES = ['loading', 'dead', 'ok', 'newsletter', 'cookies', 'captcha', 'update']
 ```
 
 Special routes: `/` → random z LOOP_SCENES, `/anim/<file>` → assety/anim/ (no-cache), `/cursor/mys.svg` → color injection.
@@ -206,7 +204,7 @@ eyes.forEach(e => { e.targX = Math.max(e.minDX, Math.min(e.maxDX, rawX)); });
 
 ### NEWSLETTER
 - Toggles: lerp slide, fill opacity, hover scale, auto-flip-back (ruka pri flip-off)
-- **ruka_tu idle:** 5s bez interakcie AK SÚ OBA TOGGLEY ON → `loop:true, goToAndPlay(8)`
+- **BEZ ruka_tu idle** — idle timer a celá ruka_tu sekcia boli odstránené
 - **Eye roll spam:** 3+ kliky za 400ms → min→max→release (280ms+320ms)
 - `eyeRollActive` deklarovaný pred `tick()`
 
@@ -219,20 +217,16 @@ eyes.forEach(e => { e.targX = Math.max(e.minDX, Math.min(e.maxDX, rawX)); });
 - Eye roll: 3+ kliky/400ms
 
 ### CAPTCHA
-- **Paranoidné oči — state machine:**
-  ```
-  pool: FOLLOW_MOUSE×2, LOOK_LEFT, LOOK_RIGHT, LOOK_AT_VIEWER, LOOK_AT_CHECKBOX
-  interval: 2–5s
-  LOOK_LEFT/RIGHT: forcedEyeTarget = {x: midX ±700, y: midY}, drží 0.8–1.5s
-  LOOK_AT_VIEWER: {x: midX, y: midY+180}, drží 0.5–1.1s
-  LOOK_AT_CHECKBOX: getBBox() checkboxu, drží 0.4–0.8s
-  ```
-- Ultra-smooth lerp: 0.06/0.04
+- **Oči:** štandardný simple tracking (lerp 0.13/0.10), BEZ paranoidného state machine
+- SVG IDs: `captcha-eye_x5F_R` (single dash), `captcha--eye_x5F_L` (**DOUBLE DASH** — tak je v SVG!), `captcha-pupil_x5F_R/L`
 - Body squish: `#captcha-body` → `wrapper.animate`, `ev.stopPropagation()` na checkbox
+- **Ruka na checkbox:** `rukatoggle.json` plays na klik → `HAND_PEAK_MS=700ms` → checkmark pop-in → fade po 800ms
+- **Checkmark iba fade** (opacity 0→1 pop, potom 1→0 fade, nie instant remove)
 - Checkbox: fail counter, `FAILS_TO_PASS = 3+rand(3)`, navigate po dosiahnutí
+- VB_CAPTCHA: `{ x: 608, y: 425, w: 695 }` pre lottie pozicionovanie
 
 ### UPDATE
-- Parallax + oči (zdieľaný offset, lerp 0.10/0.10)
+- Parallax + oči (per-eye štandardný tracking, lerp 0.13/0.10 — ako ok scene)
 - Body squish: `#update-body`
 - **ruka_tu in/hold/out:** playSegments([0,50]) → goToAndStop(50) → hold 2.8s → playSegments([50,100]) → hide
 - **Kozmetika vstupu:** `transform: translateY(-18px) rotate(-2deg); transform-origin: 98% 55%` v CSS
@@ -240,15 +234,6 @@ eyes.forEach(e => { e.targX = Math.max(e.minDX, Math.min(e.maxDX, rawX)); });
 - **NOW button:** vždy `window.location.href = '/scene/loading'` (nie cez OLS.navigate)
 - **Button hitbox fix:** `#Layer_1 #update-later_x5F_button_x5F_body { fill: transparent; }` + `#update-now_x5F_button_x5F_body { fill: transparent; }` — klikateľná celá plocha, nie len outline
 - **Hover guard:** `if (nowHovered) return;` zabraňuje re-triggerovaniu scale pri prechode medzi sub-elementmi
-
-### LOCATION
-- SVG IDs: `#location-body`, `#location-allow_x5F_button_x5F_fill/body/txt`, `#location-block_x5F_txt` (len text, bez fill), `#location-dontshow_x5F_checkbox_x5F_body/checkmark/txt`, `#location-eye_x5F_R/L`, `#location-pupil_x5F_R/L`, `#location-txt`
-- ALLOW: hover scale 1.05, click pressButton → navigate
-- **BLOCK hover → scared eyes:** pupils scale(0.45) + `targY = minDY` (hore), exit na mouseleave
-- BLOCK click: exitScaredMode + navigate (rovnaký výsledok ako ALLOW — hostile)
-- Body squish: `#location-body`
-- **Dont-show:** click → checkmark pop-in → 500ms → `ruka_tu.json` (loop:false) → complete → odškrtne + `.disabled` class (opacity 0.35, pointer-events:none) — permanentné
-- **ruka_tu idle:** `scaleX(-1)` (ruka z ľavej strany, ukazuje doprava na ALLOW), 5s idle, loop:true
 
 ---
 
@@ -292,7 +277,7 @@ el.addEventListener('mouseleave', ev => {
 
 ---
 
-## ruka_tu idle timer pattern (cookies, newsletter, location)
+## ruka_tu idle timer pattern (cookies, newsletter)
 
 ```javascript
 let rukaTuShowing = false, idleTimer = null;
@@ -375,8 +360,9 @@ PLAN.md                      ← implementačný plán z 2026-06-04 session
 ## Known issues / poznámky
 
 1. **Lottie farby** — hardcoded z AE, nereagujú na COLORS
-2. **rukatoggle.json** — manuálne modifikovaný JSON (white fill, trimmed). Ak re-export z AE, zmeny sa stratia
-3. **ruka_tu poloha** — hand v Lottie artboarde je na fixnej pozícii. V location je `scaleX(-1)` aby smerovala inak. V update je CSS `rotate(-2deg) translateY(-18px)` pre čistejší vstup
+2. **rukatoggle.json** — manuálne modifikovaný JSON (white fill, trimmed). Ak re-export z AE, zmeny sa stratia. Teraz používaný aj v captcha (checkbox hand)
+3. **ruka_tu poloha** — hand v Lottie artboarde je na fixnej pozícii. V update je CSS `rotate(-2deg) translateY(-18px)` pre čistejší vstup
 4. **cookies parallax** — používa `style.transform` (nie `style.translate`) — funkčné, len nekonzistentné
 5. **`lottieTransPts`** v cookies.js — nepoužívaná premenná, safe to remove
-6. **ruka_kyv.json** — načítaný ale nevyužitý (plánovaný pre captcha waving hands)
+6. **ruka_kyv.json** — načítaný ale nevyužitý
+7. **captcha--eye_x5F_L double dash** — ID v SVG má dvojitú pomlčku (`captcha--eye_x5F_L`). Tak je to v AI súbore. captcha.js to správne referencuje s dvojitou pomlčkou.
