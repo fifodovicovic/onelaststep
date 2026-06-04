@@ -8,6 +8,9 @@
   overflow: hidden;
   top: 0;
   left: 0;
+  /* kozmetická úprava vstupu z pravej strany */
+  transform: translateY(-18px) rotate(-2deg);
+  transform-origin: 98% 55%;
 }
 
 #lottie-ruka-tu * {
